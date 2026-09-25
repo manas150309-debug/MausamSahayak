@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+*.db
+*.db-wal
+*.db-shm
+.env
+*.joblib
+.pio/
+nishant_firmware/firmware/include/config.local.h
+.DS_Store
+.venv/
+

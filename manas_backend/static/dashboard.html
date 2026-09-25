@@ -1,0 +1,1493 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MausamSahayak - IoT Weather, Flood Alert & Crop Advisory System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --font-main: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+    --bg-gradient: radial-gradient(circle at 10% 20%, #0f172a 0%, #090d16 90%);
+    --bg-page: #0b0f19;
+    --surface: rgba(18, 26, 43, 0.75);
+    --surface-hover: rgba(26, 37, 60, 0.85);
+    --surface-solid: #131c2e;
+    --surface-glass: rgba(255, 255, 255, 0.03);
+    --border: rgba(255, 255, 255, 0.08);
+    --border-accent: rgba(56, 189, 248, 0.25);
+    --fg: #f1f5f9;
+    --fg-muted: #94a3b8;
+    --fg-dim: #64748b;
+    --accent: #38bdf8;
+    --accent-glow: rgba(56, 189, 248, 0.25);
+    --green: #10b981;
+    --green-glow: rgba(16, 185, 129, 0.25);
+    --yellow: #f59e0b;
+    --yellow-glow: rgba(245, 158, 11, 0.25);
+    --orange: #f97316;
+    --orange-glow: rgba(249, 115, 22, 0.3);
+    --red: #ef4444;
+    --red-glow: rgba(239, 68, 68, 0.4);
+    --unknown: #6b7280;
+    --unknown-glow: rgba(107, 114, 128, 0.25);
+    --radius-sm: 8px;
+    --radius-md: 14px;
+    --radius-lg: 20px;
+    --shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
+  }
+
+  [data-theme="light"] {
+    --bg-page: #f8fafc;
+    --bg-gradient: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+    --surface: rgba(255, 255, 255, 0.88);
+    --surface-hover: #ffffff;
+    --surface-solid: #ffffff;
+    --surface-glass: rgba(0, 0, 0, 0.02);
+    --border: rgba(15, 23, 42, 0.1);
+    --border-accent: rgba(14, 165, 233, 0.3);
+    --fg: #0f172a;
+    --fg-muted: #475569;
+    --fg-dim: #94a3b8;
+    --accent: #0284c7;
+    --accent-glow: rgba(2, 132, 199, 0.15);
+    --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--font-main);
+    background: var(--bg-page);
+    background-image: var(--bg-gradient);
+    background-attachment: fixed;
+    color: var(--fg);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+  }
+
+  /* --- Top Nav / Header --- */
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+    box-shadow: var(--shadow);
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    text-decoration: none;
+    color: inherit;
+  }
+  .brand-logo {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #0284c7, #38bdf8, #10b981);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    box-shadow: 0 0 20px rgba(56, 189, 248, 0.4);
+    animation: pulseGlow 4s infinite alternate;
+  }
+  @keyframes pulseGlow {
+    0% { transform: scale(1); filter: brightness(1); }
+    100% { transform: scale(1.04); filter: brightness(1.15); }
+  }
+  .brand-text h1 {
+    font-size: 1.25rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    background: linear-gradient(90deg, #38bdf8, #818cf8, #34d399);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .brand-text p {
+    font-size: 0.72rem;
+    color: var(--fg-muted);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .pulse-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 14px;
+    border-radius: 999px;
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    color: #10b981;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  .pulse-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #10b981;
+    box-shadow: 0 0 10px #10b981;
+    animation: blink 2s infinite ease-in-out;
+  }
+  @keyframes blink {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.85); }
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: var(--radius-sm);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--surface-glass);
+    color: var(--fg);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .btn:hover {
+    background: var(--surface-hover);
+    border-color: var(--border-accent);
+    transform: translateY(-1px);
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, #0284c7, #2563eb);
+    color: #fff;
+    border: none;
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3);
+  }
+  .btn-primary:hover {
+    filter: brightness(1.1);
+    box-shadow: 0 6px 18px rgba(37, 99, 235, 0.45);
+  }
+
+  /* --- Metric Summary Strip --- */
+  .metrics-summary {
+    padding: 20px 24px 8px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+  }
+  .kpi-card {
+    background: var(--surface);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    box-shadow: var(--shadow);
+    transition: transform 0.2s ease, border-color 0.2s ease;
+  }
+  .kpi-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--border-accent);
+  }
+  .kpi-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    background: var(--surface-glass);
+    border: 1px solid var(--border);
+  }
+  .kpi-title { font-size: 0.72rem; color: var(--fg-muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.04em; }
+  .kpi-val { font-size: 1.35rem; font-weight: 800; font-family: var(--font-mono); margin-top: 2px; }
+  .kpi-sub { font-size: 0.7rem; color: var(--fg-dim); margin-top: 2px; }
+
+  /* --- Controls & Filter Bar --- */
+  .controls-bar {
+    padding: 10px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .filters {
+    display: flex;
+    gap: 8px;
+    background: var(--surface);
+    padding: 4px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+  }
+  .filter-btn {
+    background: transparent;
+    border: none;
+    color: var(--fg-muted);
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .filter-btn.active {
+    background: var(--accent);
+    color: #fff;
+    box-shadow: 0 2px 8px var(--accent-glow);
+  }
+
+  /* --- Stations Grid --- */
+  main {
+    padding: 12px 24px 32px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 20px;
+  }
+
+  .station-card {
+    background: var(--surface);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    box-shadow: var(--shadow);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+  }
+  .station-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: transparent;
+    transition: background 0.3s ease;
+  }
+  .station-card.risk-RED::before { background: var(--red); box-shadow: 0 0 12px var(--red); }
+  .station-card.risk-ORANGE::before { background: var(--orange); box-shadow: 0 0 12px var(--orange); }
+  .station-card.risk-YELLOW::before { background: var(--yellow); }
+  .station-card.risk-UNKNOWN::before { background: var(--unknown); }
+  .station-card.risk-GREEN::before { background: var(--green); }
+
+  .station-card:hover {
+    transform: translateY(-3px);
+    border-color: var(--border-accent);
+    box-shadow: 0 18px 35px -10px rgba(0,0,0,0.6);
+  }
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .station-meta h3 {
+    font-size: 1.08rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--fg);
+  }
+  .station-loc {
+    font-size: 0.75rem;
+    color: var(--fg-muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 3px;
+  }
+  .node-id-chip {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    background: var(--surface-glass);
+    border: 1px solid var(--border);
+    padding: 2px 7px;
+    border-radius: 6px;
+    color: var(--accent);
+  }
+
+  .badges-row {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .badge {
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 999px;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .badge-GREEN { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35); }
+  .badge-YELLOW { background: rgba(245, 158, 11, 0.18); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); }
+  .badge-ORANGE { background: rgba(249, 115, 22, 0.2); color: #fb923c; border: 1px solid rgba(249, 115, 22, 0.45); animation: pulseOrange 2s infinite; }
+  .badge-RED { background: rgba(239, 68, 68, 0.25); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.5); animation: pulseRed 1.5s infinite; }
+  .badge-UNKNOWN { background: rgba(107, 114, 128, 0.2); color: #9ca3af; border: 1px solid rgba(107, 114, 128, 0.35); }
+
+  @keyframes pulseRed {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+    50% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+  }
+  @keyframes pulseOrange {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.35); }
+    50% { box-shadow: 0 0 0 5px rgba(249, 115, 22, 0); }
+  }
+
+  .stale-banner {
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: var(--radius-sm);
+    padding: 8px 12px;
+    font-size: 0.75rem;
+    color: #fca5a5;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .stale-banner span.warn-icon { font-size: 16px; }
+
+  /* Sensor Grid */
+  .sensor-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .sensor-tile {
+    background: var(--surface-glass);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 8px 10px;
+    transition: background 0.15s ease;
+  }
+  .sensor-tile:hover {
+    background: var(--surface-hover);
+  }
+  .sensor-tile-lbl {
+    font-size: 0.68rem;
+    color: var(--fg-dim);
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .sensor-tile-val {
+    font-size: 1rem;
+    font-weight: 700;
+    font-family: var(--font-mono);
+    color: var(--fg);
+    margin-top: 3px;
+  }
+
+  /* Water Level Gauge Bar */
+  .gauge-box {
+    background: var(--surface-glass);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+  }
+  .gauge-head {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.72rem;
+    color: var(--fg-muted);
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .gauge-track {
+    height: 8px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    position: relative;
+    overflow: hidden;
+  }
+  .gauge-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #38bdf8, #10b981);
+    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .gauge-fill.warn { background: linear-gradient(90deg, #f59e0b, #ef4444); }
+
+  /* Charts Container */
+  .chart-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 2px;
+  }
+  .chart-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.72rem;
+    color: var(--fg-muted);
+    font-weight: 600;
+  }
+  .chart-canvas-wrap {
+    position: relative;
+    height: 85px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+  canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  /* Risk Reasons List */
+  .reasons-box {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 2px;
+  }
+  .reason-pill {
+    font-size: 0.68rem;
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid rgba(245, 158, 11, 0.25);
+    color: #fde68a;
+  }
+
+  /* Card Action Bar (Fast Simulator) */
+  .card-sim-bar {
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .sim-chip-btn {
+    font-size: 0.68rem;
+    padding: 4px 8px;
+    border-radius: 6px;
+    background: var(--surface-glass);
+    border: 1px solid var(--border);
+    color: var(--fg-muted);
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.15s;
+  }
+  .sim-chip-btn:hover {
+    background: var(--surface-hover);
+    color: var(--fg);
+    border-color: var(--border-accent);
+  }
+
+  /* --- Modals / Drawers --- */
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(8px);
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+  }
+  .modal-overlay.open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .modal-box {
+    background: var(--surface-solid);
+    border: 1px solid var(--border-accent);
+    border-radius: var(--radius-lg);
+    width: 100%;
+    max-width: 640px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.7);
+    transform: translateY(20px);
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+  }
+  .modal-overlay.open .modal-box {
+    transform: translateY(0);
+  }
+  .modal-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .modal-header h2 {
+    font-size: 1.15rem;
+    font-weight: 700;
+  }
+  .modal-close {
+    background: transparent;
+    border: none;
+    color: var(--fg-muted);
+    font-size: 20px;
+    cursor: pointer;
+  }
+  .modal-body {
+    padding: 20px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    font-size: 0.85rem;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .form-group label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--fg-muted);
+    text-transform: uppercase;
+  }
+  .form-control {
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 9px 12px;
+    color: var(--fg);
+    font-family: inherit;
+    font-size: 0.85rem;
+  }
+  .form-control:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-glow);
+  }
+
+  /* Result Cards */
+  .rec-card {
+    background: var(--surface-glass);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .rec-header {
+    display: flex;
+    justify-content: space-between;
+    font-weight: 700;
+    font-size: 0.95rem;
+  }
+  .score-bar-wrap {
+    height: 6px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    overflow: hidden;
+  }
+  .score-bar {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #10b981, #38bdf8);
+  }
+
+  /* Alerts Table */
+  .alerts-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.78rem;
+  }
+  .alerts-table th, .alerts-table td {
+    padding: 8px 10px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  .alerts-table th {
+    color: var(--fg-dim);
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  /* --- Footer --- */
+  footer {
+    margin-top: auto;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+    padding: 18px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    font-size: 0.75rem;
+    color: var(--fg-muted);
+  }
+  .helpline-tags {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .helpline-tag {
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #fca5a5;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-weight: 600;
+  }
+
+  /* Toast Notification */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 300;
+    background: var(--surface-solid);
+    border: 1px solid var(--border-accent);
+    border-radius: var(--radius-md);
+    padding: 12px 18px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transform: translateY(100px);
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .toast.show {
+    transform: translateY(0);
+    opacity: 1;
+  }
+</style>
+</head>
+<body data-theme="dark">
+
+<header>
+  <a href="#" class="brand">
+    <div class="brand-logo">🛰️</div>
+    <div class="brand-text">
+      <h1>MausamSahayak</h1>
+      <p>IoT Mesh • Flood Early Warning • Crop Advisory</p>
+    </div>
+  </a>
+
+  <div class="header-actions">
+    <div class="pulse-badge" id="net-status">
+      <div class="pulse-dot"></div>
+      <span>CONNECTED (LOCAL DEV)</span>
+    </div>
+    <button class="btn btn-primary" onclick="openModal('modal-simulator')">⚡ Simulator</button>
+    <button class="btn" onclick="openModal('modal-crop')">🌾 Crop Advisor</button>
+    <button class="btn" onclick="openModal('modal-alerts')">🚨 Alert Log</button>
+    <button class="btn" onclick="openModal('modal-nearest')">📍 Nearest Station</button>
+    <button class="btn" onclick="openModal('modal-capstone')">🎓 Project & Viva</button>
+    <button class="btn" id="theme-btn" onclick="toggleTheme()" title="Toggle Dark/Light">☀️</button>
+  </div>
+</header>
+
+<!-- Metric Overview Strip -->
+<div class="metrics-summary">
+  <div class="kpi-card">
+    <div class="kpi-icon">📡</div>
+    <div>
+      <div class="kpi-title">Active Stations</div>
+      <div class="kpi-val" id="kpi-nodes">- / -</div>
+      <div class="kpi-sub" id="kpi-nodes-sub">Reporting regularly</div>
+    </div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-icon">⚠️</div>
+    <div>
+      <div class="kpi-title">Highest Threat Level</div>
+      <div class="kpi-val" id="kpi-risk">NORMAL</div>
+      <div class="kpi-sub" id="kpi-risk-sub">All clear</div>
+    </div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-icon">🌧️</div>
+    <div>
+      <div class="kpi-title">Peak 24h Rainfall</div>
+      <div class="kpi-val" id="kpi-rain">- mm</div>
+      <div class="kpi-sub">Across all mesh nodes</div>
+    </div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-icon">⏱️</div>
+    <div>
+      <div class="kpi-title">Last Network Sync</div>
+      <div class="kpi-val" id="kpi-sync">Just now</div>
+      <div class="kpi-sub" id="sync-sub">Auto-refresh every 30s</div>
+    </div>
+  </div>
+</div>
+
+<!-- Controls / Filter -->
+<div class="controls-bar">
+  <div class="filters">
+    <button class="filter-btn active" onclick="setFilter('ALL')">All Stations</button>
+    <button class="filter-btn" onclick="setFilter('WARNINGS')">Active Warnings</button>
+    <button class="filter-btn" onclick="setFilter('NORMAL')">Normal Only</button>
+  </div>
+  <div style="font-size:0.75rem; color:var(--fg-dim);">
+    Quick Actions: <button class="btn" style="padding:4px 10px; font-size:0.7rem;" onclick="seedDemo()">Re-Seed Demo Data</button>
+    <button class="btn" style="padding:4px 10px; font-size:0.7rem;" onclick="refreshData()">Force Sync Now</button>
+  </div>
+</div>
+
+<!-- Stations Grid -->
+<main id="stations-grid">
+  <!-- Dynamic station cards inserted here -->
+</main>
+
+<!-- Modals -->
+
+<!-- 1. Simulator Modal -->
+<div class="modal-overlay" id="modal-simulator">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2>⚡ Live Scenario Simulator</h2>
+      <button class="modal-close" onclick="closeModal('modal-simulator')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p style="color:var(--fg-muted);">Inject synthetic flood, heavy rain, dry weather, or sensor silence into any station to demonstrate real-time risk assessment without hardware.</p>
+      <div class="form-group">
+        <label>Target Station</label>
+        <select class="form-control" id="sim-target-node">
+          <option value="node01">node01 - Campus drain (demo)</option>
+          <option value="node02">node02 - Riverbank site (demo)</option>
+          <option value="node03">node03 - Village pond (demo)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Simulation Scenario</label>
+        <select class="form-control" id="sim-scenario">
+          <option value="flood">🚨 Flood Surge (~200mm rain, water crosses danger mark)</option>
+          <option value="heavy_rain">🌧️ Heavy Rain Storm (~90mm rain, river rises to half danger)</option>
+          <option value="normal">☀️ Normal Weather (Dry day, stable river level)</option>
+          <option value="silent">🔇 Silent Node (Stop transmissions to test fail-safe UNKNOWN)</option>
+        </select>
+      </div>
+      <div style="display:flex; gap:10px; margin-top:8px;">
+        <button class="btn btn-primary" style="flex:1;" onclick="applyScenario()">Apply Scenario (24h backfill)</button>
+        <button class="btn" onclick="seedDemo()">Re-Seed All Nodes</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 2. Crop Advisor Modal -->
+<div class="modal-overlay" id="modal-crop">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2>🌾 Agronomic Crop Advisor</h2>
+      <button class="modal-close" onclick="closeModal('modal-crop')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p style="color:var(--fg-muted);">Evaluate season, local 7-day temperature, IMD district normal rainfall, and soil moisture to recommend optimal crops.</p>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div class="form-group">
+          <label>Latitude</label>
+          <input type="number" step="0.0001" class="form-control" id="crop-lat" value="28.4089">
+        </div>
+        <div class="form-group">
+          <label>Longitude</label>
+          <input type="number" step="0.0001" class="form-control" id="crop-lon" value="77.3178">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Irrigation Access</label>
+        <select class="form-control" id="crop-irrigated">
+          <option value="0">Rainfed (Dependent on monsoon / rainfall)</option>
+          <option value="1">Irrigated (Tube-well / canal available)</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" onclick="queryCropAdvice()">Calculate Crop Recommendations</button>
+
+      <div id="crop-results" style="display:flex; flex-direction:column; gap:10px; margin-top:8px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 3. Alert Log Modal -->
+<div class="modal-overlay" id="modal-alerts">
+  <div class="modal-box" style="max-width:760px;">
+    <div class="modal-header">
+      <h2>🚨 Alert Audit Log</h2>
+      <button class="modal-close" onclick="closeModal('modal-alerts')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p style="color:var(--fg-muted);">Real-time alerts generated by the de-escalation hold worker. Escalates immediately; de-escalates with a 30-min hold to avoid flapping.</p>
+      <div style="max-height:360px; overflow-y:auto;">
+        <table class="alerts-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Node</th>
+              <th>Kind</th>
+              <th>Severity</th>
+              <th>Previous</th>
+              <th>Time</th>
+            </tr>
+          </thead>
+          <tbody id="alerts-tbody">
+            <tr><td colspan="6" style="text-align:center;">Loading alerts...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 4. Nearest Station Modal -->
+<div class="modal-overlay" id="modal-nearest">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2>📍 Farmer Nearest Station Lookup</h2>
+      <button class="modal-close" onclick="closeModal('modal-nearest')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p style="color:var(--fg-muted);">Look up the nearest sensor node within 30 km range (as used by the Telegram bot).</p>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div class="form-group">
+          <label>Latitude</label>
+          <input type="number" step="0.0001" class="form-control" id="near-lat" value="28.4100">
+        </div>
+        <div class="form-group">
+          <label>Longitude</label>
+          <input type="number" step="0.0001" class="form-control" id="near-lon" value="77.3200">
+        </div>
+      </div>
+      <div style="display:flex; gap:10px;">
+        <button class="btn btn-primary" style="flex:1;" onclick="queryNearest()">Find Nearest Station</button>
+        <button class="btn" onclick="useMyLocation()">Use Device Location</button>
+      </div>
+      <div id="nearest-result" style="margin-top:8px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 5. Capstone / Viva Modal -->
+<div class="modal-overlay" id="modal-capstone">
+  <div class="modal-box" style="max-width:700px;">
+    <div class="modal-header">
+      <h2>🎓 MausamSahayak - B.Tech Capstone 2026-27</h2>
+      <button class="modal-close" onclick="closeModal('modal-capstone')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <h3 style="color:var(--accent);">Team Roster & Contributions</h3>
+      <table class="alerts-table">
+        <tr><th>Role</th><th>Lead</th><th>Folder</th><th>Key Responsibility</th></tr>
+        <tr><td>Backend & Ingest</td><td><b>Manas</b></td><td><code>manas_backend/</code></td><td>SQLite WAL, Ingest, Alerts worker, REST API, Live Dashboard</td></tr>
+        <tr><td>Risk & Crop ML</td><td><b>Parul</b></td><td><code>parul_risk_crop/</code></td><td>Flood & heat engine, Random Forest model, thresholds sweep</td></tr>
+        <tr><td>Firmware & Sim</td><td><b>Nishant</b></td><td><code>nishant_firmware/</code></td><td>ESP32 C++ firmware, sensor simulator, power budget, wiring</td></tr>
+        <tr><td>Telegram Bot</td><td><b>Swati</b></td><td><code>swati_bot/</code></td><td>Bilingual Hindi/English bot, alert delivery, SMS fallback</td></tr>
+        <tr><td>Evaluation & Viva</td><td><b>Anil</b></td><td><code>anil_docs/</code></td><td>KVK validation, budget, field trial forms, viva notes, Assam study</td></tr>
+      </table>
+
+      <h3 style="color:var(--accent); margin-top:10px;">Core Engineering Design Principles</h3>
+      <ul style="margin-left:20px; line-height:1.6; color:var(--fg-muted);">
+        <li><b>Fail-Safe Policy:</b> Silent nodes or missing sensor values report as <b style="color:#9ca3af;">UNKNOWN</b>, never false "GREEN / all clear".</li>
+        <li><b>Anti-Flapping Alert Guard:</b> Escalations are instant; de-escalations require a 30-minute quiet hold.</li>
+        <li><b>Advisory Boundary:</b> System only advises and points to state authorities (NDMA 1078, Police/Ambulance 112).</li>
+        <li><b>Offline Resilience:</b> ESP32 buffers readings in local SPIFFS flash during Wi-Fi outages; backfilled on reconnect.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast">
+  <span id="toast-icon">ℹ️</span>
+  <span id="toast-msg">Notification</span>
+</div>
+
+<footer>
+  <div>
+    <b>MausamSahayak</b> - Capstone Project 2026-27 • Team: Manas, Parul, Nishant, Swati, Anil
+  </div>
+  <div class="helpline-tags">
+    <span class="helpline-tag">Emergency: 112</span>
+    <span class="helpline-tag">NDMA Disaster Helpline: 1078</span>
+    <span class="helpline-tag">Kisan Call Centre: 1800-180-1551</span>
+  </div>
+</footer>
+
+<script>
+// --- State & Helpers ---
+let currentFilter = 'ALL';
+let cachedNodes = [];
+let cachedRisks = {};
+let cachedHistories = {};
+
+const $ = (s) => document.querySelector(s);
+const fmt = (v, u = "") => (v === null || v === undefined ? "-" : v + u);
+const api = async (url, opts = {}) => {
+  const r = await fetch(url, opts);
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({}));
+    throw new Error(err.error || `HTTP ${r.status}`);
+  }
+  return r.json();
+};
+
+function showToast(msg, icon = 'ℹ️') {
+  const t = $('#toast');
+  $('#toast-icon').textContent = icon;
+  $('#toast-msg').textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+function openModal(id) { $('#' + id).classList.add('open'); }
+function closeModal(id) { $('#' + id).classList.remove('open'); }
+
+document.querySelectorAll('.modal-overlay').forEach(el => {
+  el.addEventListener('click', (e) => {
+    if (e.target === el) el.classList.remove('open');
+  });
+});
+
+function toggleTheme() {
+  const b = document.body;
+  const isDark = b.getAttribute('data-theme') === 'dark';
+  b.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  $('#theme-btn').textContent = isDark ? '🌙' : '☀️';
+}
+
+function setFilter(f) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.textContent.toUpperCase().includes(f));
+  });
+  renderCards();
+}
+
+// --- High-DPI Canvas Sparkline ---
+function drawSparkline(canvas, values, options = {}) {
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = (rect.width || 300) * dpr;
+  canvas.height = (rect.height || 85) * dpr;
+  ctx.scale(dpr, dpr);
+  const w = rect.width || 300;
+  const h = rect.height || 85;
+
+  ctx.clearRect(0, 0, w, h);
+  const v = values.filter(x => x !== null && x !== undefined);
+  if (v.length < 2) {
+    ctx.fillStyle = 'rgba(148, 163, 184, 0.4)';
+    ctx.font = '11px sans-serif';
+    ctx.fillText('Insufficient historical points', 10, h / 2);
+    return;
+  }
+
+  let lo = Math.min(...v);
+  let hi = Math.max(...v);
+  if (options.threshold) hi = Math.max(hi, options.threshold);
+  const span = hi - lo || 1;
+  const padding = 12;
+
+  // Optional Danger threshold line
+  if (options.threshold !== undefined) {
+    const threshY = h - padding - ((options.threshold - lo) / span) * (h - padding * 2);
+    ctx.strokeStyle = 'rgba(239, 68, 68, 0.4)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(0, threshY);
+    ctx.lineTo(w, threshY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(239, 68, 68, 0.8)';
+    ctx.font = '9px monospace';
+    ctx.fillText('DANGER ' + options.threshold + 'cm', w - 85, Math.max(10, threshY - 3));
+  }
+
+  // Draw area & line
+  const color = options.color || '#38bdf8';
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2.5;
+
+  const points = [];
+  values.forEach((val, i) => {
+    if (val === null || val === undefined) return;
+    const px = (i / (values.length - 1)) * w;
+    const py = h - padding - ((val - lo) / span) * (h - padding * 2);
+    points.push({ x: px, y: py });
+  });
+
+  if (points.length < 2) return;
+
+  // Gradient fill under curve
+  const grad = ctx.createLinearGradient(0, 0, 0, h);
+  grad.addColorStop(0, color.replace(')', ', 0.35)').replace('rgb', 'rgba'));
+  grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+
+  ctx.beginPath();
+  ctx.moveTo(points[0].x, points[0].y);
+  for (let i = 1; i < points.length; i++) {
+    ctx.lineTo(points[i].x, points[i].y);
+  }
+  ctx.lineTo(points[points.length - 1].x, h);
+  ctx.lineTo(points[0].x, h);
+  ctx.closePath();
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // Stroke line
+  ctx.beginPath();
+  ctx.moveTo(points[0].x, points[0].y);
+  for (let i = 1; i < points.length; i++) {
+    ctx.lineTo(points[i].x, points[i].y);
+  }
+  ctx.stroke();
+
+  // Highlight latest point
+  const last = points[points.length - 1];
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(last.x, last.y, 4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+}
+
+// --- Main Render Pipeline ---
+async function refreshData() {
+  try {
+    $('#net-status').innerHTML = '<div class="pulse-dot"></div><span>SYNCING...</span>';
+    const { nodes } = await api('/api/nodes');
+    cachedNodes = nodes;
+
+    const riskPromises = nodes.map(n => api(`/api/nodes/${n.node_id}/risk`).catch(() => null));
+    const histPromises = nodes.map(n => api(`/api/nodes/${n.node_id}/history?hours=24`).catch(() => null));
+
+    const [risks, hists] = await Promise.all([Promise.all(riskPromises), Promise.all(histPromises)]);
+    nodes.forEach((n, idx) => {
+      cachedRisks[n.node_id] = risks[idx];
+      cachedHistories[n.node_id] = hists[idx];
+    });
+
+    updateSummaryKPIs();
+    renderCards();
+    $('#net-status').innerHTML = '<div class="pulse-dot"></div><span>CONNECTED (LOCAL DEV)</span>';
+    $('#kpi-sync').textContent = new Date().toLocaleTimeString();
+  } catch (err) {
+    $('#net-status').innerHTML = '<span style="color:#ef4444;">● OFFLINE / ERROR</span>';
+    showToast('Failed to sync: ' + err.message, '⚠️');
+  }
+}
+
+function updateSummaryKPIs() {
+  let total = cachedNodes.length;
+  let active = 0;
+  let maxRisk = 'GREEN';
+  let maxRain = 0;
+
+  const severityOrder = { 'GREEN': 0, 'YELLOW': 1, 'UNKNOWN': 2, 'ORANGE': 3, 'RED': 4 };
+
+  cachedNodes.forEach(n => {
+    const r = cachedRisks[n.node_id];
+    if (r) {
+      if (!r.flood?.stale) active++;
+      const floodLevel = r.flood?.level_name || 'UNKNOWN';
+      if ((severityOrder[floodLevel] || 0) > (severityOrder[maxRisk] || 0)) {
+        maxRisk = floodLevel;
+      }
+      const r24 = r.flood?.metrics?.rain_24h_mm || 0;
+      if (r24 > maxRain) maxRain = r24;
+    }
+  });
+
+  $('#kpi-nodes').textContent = `${active} / ${total}`;
+  $('#kpi-nodes-sub').textContent = `${total - active} silent / stale`;
+
+  const kpiRisk = $('#kpi-risk');
+  kpiRisk.textContent = maxRisk;
+  if (maxRisk === 'RED') {
+    kpiRisk.style.color = 'var(--red)';
+    $('#kpi-risk-sub').textContent = 'CRITICAL FLOOD ALERT';
+  } else if (maxRisk === 'ORANGE') {
+    kpiRisk.style.color = 'var(--orange)';
+    $('#kpi-risk-sub').textContent = 'Heavy flood warning';
+  } else if (maxRisk === 'YELLOW') {
+    kpiRisk.style.color = 'var(--yellow)';
+    $('#kpi-risk-sub').textContent = 'Moderate rain warning';
+  } else if (maxRisk === 'UNKNOWN') {
+    kpiRisk.style.color = 'var(--unknown)';
+    $('#kpi-risk-sub').textContent = 'Sensor silent (fail-safe)';
+  } else {
+    kpiRisk.style.color = 'var(--green)';
+    $('#kpi-risk-sub').textContent = 'All stations clear';
+  }
+
+  $('#kpi-rain').textContent = maxRain.toFixed(1) + ' mm';
+}
+
+function renderCards() {
+  const root = $('#stations-grid');
+  root.innerHTML = '';
+
+  const filtered = cachedNodes.filter(n => {
+    const r = cachedRisks[n.node_id];
+    const floodLvl = r?.flood?.level_name || 'UNKNOWN';
+    if (currentFilter === 'WARNINGS') return floodLvl === 'RED' || floodLvl === 'ORANGE' || floodLvl === 'YELLOW' || floodLvl === 'UNKNOWN';
+    if (currentFilter === 'NORMAL') return floodLvl === 'GREEN';
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    root.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:40px; color:var(--fg-dim);">No stations matching filter</div>';
+    return;
+  }
+
+  filtered.forEach(n => {
+    const risk = cachedRisks[n.node_id] || {};
+    const hist = cachedHistories[n.node_id] || { readings: [] };
+    const r = risk.reading || {};
+    const f = risk.flood || { level_name: 'UNKNOWN', reasons: [], metrics: {} };
+    const h = risk.heat || { level_name: 'GREEN' };
+    const danger = n.danger_level_cm || 450;
+    const waterLevel = r.water_level_cm || 0;
+    const waterRatio = Math.min(100, Math.round((waterLevel / danger) * 100));
+
+    const card = document.createElement('div');
+    card.className = `station-card risk-${f.level_name}`;
+
+    const reasonsPills = (f.reasons || []).map(x =>
+      `<span class="reason-pill">⚠️ ${x.code.replace(/_/g, ' ')}</span>`
+    ).join('');
+
+    card.innerHTML = `
+      <div class="card-header">
+        <div class="station-meta">
+          <h3>${n.name || n.node_id}</h3>
+          <div class="station-loc">
+            <span class="node-id-chip">${n.node_id}</span>
+            <span>📍 ${n.district || 'Faridabad'}, ${n.state || 'Haryana'}</span>
+          </div>
+        </div>
+        <div class="badges-row">
+          <span class="badge badge-${f.level_name}">Flood: ${f.level_name}</span>
+          <span class="badge badge-${h.level_name}">Heat: ${h.level_name}</span>
+        </div>
+      </div>
+
+      ${f.stale ? `
+        <div class="stale-banner">
+          <span class="warn-icon">⚠️</span>
+          <div>
+            <b>Fail-Safe Alert:</b> Node silent for <b>${fmt(risk.minutes_since_last)} min</b>.
+            Status marked <span style="text-decoration:underline;">UNKNOWN</span> (never assumed clear).
+          </div>
+        </div>
+      ` : ''}
+
+      <div class="sensor-grid">
+        <div class="sensor-tile">
+          <div class="sensor-tile-lbl">🌡️ Temp</div>
+          <div class="sensor-tile-val">${fmt(r.temperature_c, '°C')}</div>
+        </div>
+        <div class="sensor-tile">
+          <div class="sensor-tile-lbl">💧 Humidity</div>
+          <div class="sensor-tile-val">${fmt(r.humidity_pct, '%')}</div>
+        </div>
+        <div class="sensor-tile">
+          <div class="sensor-tile-lbl">🌧️ 24h Rain</div>
+          <div class="sensor-tile-val">${fmt(f.metrics?.rain_24h_mm, 'mm')}</div>
+        </div>
+        <div class="sensor-tile">
+          <div class="sensor-tile-lbl">🌊 River Level</div>
+          <div class="sensor-tile-val">${fmt(r.water_level_cm, 'cm')}</div>
+        </div>
+        <div class="sensor-tile">
+          <div class="sensor-tile-lbl">🌱 Soil Moist</div>
+          <div class="sensor-tile-val">${fmt(r.soil_moisture_pct, '%')}</div>
+        </div>
+        <div class="sensor-tile">
+          <div class="sensor-tile-lbl">🔋 Battery</div>
+          <div class="sensor-tile-val">${fmt(r.battery_v, 'V')}</div>
+        </div>
+      </div>
+
+      <div class="gauge-box">
+        <div class="gauge-head">
+          <span>River Danger Mark: <b>${danger} cm</b></span>
+          <span>${waterRatio}% Danger</span>
+        </div>
+        <div class="gauge-track">
+          <div class="gauge-fill ${waterRatio > 70 ? 'warn' : ''}" style="width: ${waterRatio}%"></div>
+        </div>
+      </div>
+
+      <div class="chart-section">
+        <div class="chart-header">
+          <span>Water Level (24h Trend)</span>
+          <span style="font-family:var(--font-mono);">${hist.readings.length} data points</span>
+        </div>
+        <div class="chart-canvas-wrap">
+          <canvas class="canvas-water"></canvas>
+        </div>
+      </div>
+
+      <div class="chart-section">
+        <div class="chart-header">
+          <span>Rain per 5-min Interval</span>
+          <span style="font-family:var(--font-mono);">Precipitation Trend</span>
+        </div>
+        <div class="chart-canvas-wrap">
+          <canvas class="canvas-rain"></canvas>
+        </div>
+      </div>
+
+      ${reasonsPills ? `<div class="reasons-box">${reasonsPills}</div>` : ''}
+
+      <div class="card-sim-bar">
+        <span style="font-size:0.7rem; color:var(--fg-dim);">Fast Simulate:</span>
+        <div>
+          <button class="sim-chip-btn" onclick="quickSim('${n.node_id}', 'flood')">🚨 Flood</button>
+          <button class="sim-chip-btn" onclick="quickSim('${n.node_id}', 'heavy_rain')">🌧️ Heavy Rain</button>
+          <button class="sim-chip-btn" onclick="quickSim('${n.node_id}', 'normal')">☀️ Normal</button>
+          <button class="sim-chip-btn" onclick="quickSim('${n.node_id}', 'silent')">🔇 Silent</button>
+        </div>
+      </div>
+    `;
+
+    root.appendChild(card);
+
+    // Draw Canvas Trends
+    const waterCanvas = card.querySelector('.canvas-water');
+    const rainCanvas = card.querySelector('.canvas-rain');
+    drawSparkline(waterCanvas, hist.readings.map(x => x.water_level_cm), {
+      color: '#38bdf8',
+      threshold: danger
+    });
+    drawSparkline(rainCanvas, hist.readings.map(x => x.rain_mm), {
+      color: '#818cf8'
+    });
+  });
+}
+
+// --- Quick Actions & Simulation API ---
+async function quickSim(nodeId, scenario) {
+  try {
+    showToast(`Injecting ${scenario} scenario into ${nodeId}...`, '⏳');
+    await api('/api/simulate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ node_id: nodeId, scenario: scenario })
+    });
+    showToast(`Applied ${scenario} to ${nodeId}!`, '✅');
+    await refreshData();
+  } catch (err) {
+    showToast('Simulation failed: ' + err.message, '❌');
+  }
+}
+
+async function applyScenario() {
+  const nodeId = $('#sim-target-node').value;
+  const scenario = $('#sim-scenario').value;
+  closeModal('modal-simulator');
+  await quickSim(nodeId, scenario);
+}
+
+async function seedDemo() {
+  try {
+    showToast('Re-seeding 3 demo nodes with 24h history...', '⏳');
+    await api('/api/seed', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+    showToast('Demo nodes seeded successfully!', '✅');
+    closeModal('modal-simulator');
+    await refreshData();
+  } catch (err) {
+    showToast('Seed failed: ' + err.message, '❌');
+  }
+}
+
+// --- Crop Advisor Tool ---
+async function queryCropAdvice() {
+  const lat = $('#crop-lat').value;
+  const lon = $('#crop-lon').value;
+  const irrigated = $('#crop-irrigated').value;
+  const target = $('#crop-results');
+  target.innerHTML = '<div style="color:var(--fg-dim); text-align:center;">Calculating agronomic scores...</div>';
+
+  try {
+    const data = await api(`/api/crop-advice?lat=${lat}&lon=${lon}&irrigated=${irrigated}`);
+    let html = `
+      <div style="background:var(--surface-glass); border:1px solid var(--border); border-radius:var(--radius-sm); padding:10px;">
+        <div style="display:flex; justify-content:space-between; font-weight:700;">
+          <span>Season: <b style="color:var(--accent); text-transform:uppercase;">${data.season}</b></span>
+          <span>Station: <b>${data.node_id}</b> (${data.distance_km} km)</span>
+        </div>
+        <div style="font-size:0.75rem; color:var(--fg-muted); margin-top:4px;">
+          7d Mean Temp: <b>${data.inputs.mean_temp_c_7d}°C</b> • District Rain Normal: <b>${data.inputs.seasonal_rain_normal_mm}mm</b> • Soil: <b>${fmt(data.inputs.soil_moisture_pct, '%')}</b>
+        </div>
+      </div>
+      <h4 style="margin-top:6px; font-size:0.85rem; color:var(--fg-muted);">Recommended Crops (Rule-Engine Evaluated):</h4>
+    `;
+
+    (data.recommendations || []).forEach((c, idx) => {
+      const pct = Math.round(c.score * 100);
+      const reasons = (c.reasons || []).map(r => `<span class="reason-pill" style="font-size:0.65rem;">${r.code}</span>`).join(' ');
+      html += `
+        <div class="rec-card">
+          <div class="rec-header">
+            <span>#${idx + 1} ${c.name_en} <span style="font-weight:400; color:var(--fg-muted);">(${c.name_hi})</span></span>
+            <span style="color:var(--green); font-family:var(--font-mono);">${pct}% Match</span>
+          </div>
+          <div class="score-bar-wrap">
+            <div class="score-bar" style="width: ${pct}%"></div>
+          </div>
+          <div>${reasons}</div>
+        </div>
+      `;
+    });
+
+    if (data.ml_recommendations && data.ml_recommendations.length > 0) {
+      html += `<h4 style="margin-top:10px; font-size:0.85rem; color:var(--accent);">Random Forest ML Model Predictions:</h4>`;
+      data.ml_recommendations.forEach(m => {
+        const prob = Math.round(m.probability * 100);
+        html += `
+          <div class="rec-card" style="border-color:var(--border-accent);">
+            <div class="rec-header">
+              <span>🤖 Crop: <b>${m.crop_id.toUpperCase()}</b></span>
+              <span style="color:var(--accent); font-family:var(--font-mono);">${prob}% Confidence</span>
+            </div>
+            <div class="score-bar-wrap">
+              <div class="score-bar" style="width: ${prob}%; background:linear-gradient(90deg, #38bdf8, #818cf8);"></div>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    target.innerHTML = html;
+  } catch (err) {
+    target.innerHTML = `<div style="color:var(--red);">Error: ${err.message}</div>`;
+  }
+}
+
+// --- Nearest Station Lookup ---
+async function queryNearest() {
+  const lat = $('#near-lat').value;
+  const lon = $('#near-lon').value;
+  const target = $('#nearest-result');
+  target.innerHTML = '<div style="color:var(--fg-dim);">Searching...</div>';
+
+  try {
+    const res = await api(`/api/nearest?lat=${lat}&lon=${lon}`);
+    const n = res.node;
+    target.innerHTML = `
+      <div class="rec-card" style="border-color:${res.within_range ? 'var(--green)' : 'var(--red)'};">
+        <div class="rec-header">
+          <span>${n.name} (${n.node_id})</span>
+          <span style="color:${res.within_range ? 'var(--green)' : 'var(--red)'}">${res.distance_km} km away</span>
+        </div>
+        <div style="font-size:0.75rem; color:var(--fg-muted);">
+          Status: <b>${res.within_range ? '✅ WITHIN RANGE (Reliable)' : '❌ OUT OF RANGE (> 30 km)'}</b>
+        </div>
+        <div style="font-size:0.72rem; color:var(--fg-dim);">
+          Coordinates: ${n.lat}, ${n.lon} • District: ${n.district || 'N/A'}
+        </div>
+      </div>
+    `;
+  } catch (err) {
+    target.innerHTML = `<div style="color:var(--red);">Error: ${err.message}</div>`;
+  }
+}
+
+function useMyLocation() {
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(pos => {
+      $('#near-lat').value = pos.coords.latitude.toFixed(4);
+      $('#near-lon').value = pos.coords.longitude.toFixed(4);
+      queryNearest();
+    }, () => showToast('Geolocation access denied', '⚠️'));
+  } else {
+    showToast('Geolocation not supported by browser', '⚠️');
+  }
+}
+
+// --- Alert Log Retrieval ---
+async function loadAlerts() {
+  const tbody = $('#alerts-tbody');
+  try {
+    const { alerts } = await api('/api/alerts?limit=50');
+    if (!alerts || alerts.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--fg-dim);">No alerts in database.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = alerts.slice().reverse().map(a => `
+      <tr>
+        <td style="font-family:var(--font-mono);">${a.id}</td>
+        <td><b>${a.node_id}</b></td>
+        <td>${a.kind}</td>
+        <td><span class="badge badge-${a.level_name}">${a.level_name}</span></td>
+        <td>${a.previous_level_name || '-'}</td>
+        <td style="color:var(--fg-muted);">${new Date(a.ts * 1000).toLocaleTimeString()}</td>
+      </tr>
+    `).join('');
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="6" style="color:var(--red);">Failed to load alerts: ${err.message}</td></tr>`;
+  }
+}
+
+// Open alerts modal listener
+const alertsBtn = document.querySelector('button[onclick*="modal-alerts"]');
+if (alertsBtn) {
+  alertsBtn.addEventListener('click', loadAlerts);
+}
+
+// --- Init & Interval ---
+refreshData();
+setInterval(refreshData, 30000);
+window.addEventListener('resize', renderCards);
+</script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+# Approximate 2026 prices in INR - update with real quotes before ordering. per_node items are bought once per node; shared items once.
+item,unit_cost_inr,qty_per_node,shared_qty
+ESP32 DevKit,500,1,1
+BME280 sensor,400,1,0
+Tipping-bucket rain gauge,2000,1,0
+JSN-SR04T waterproof ultrasonic,600,1,0
+Capacitive soil moisture sensor,300,1,0
+6V 2W solar panel,600,1,0
+18650 cells (pair) + holder,700,1,0
+Solar charge controller / protection board,400,1,0
+5V boost converter,150,1,0
+IP65 enclosure + cable glands,1000,1,0
+Radiation shield (DIY),300,1,0
+Wires connectors resistors MOSFET,300,1,0
+Mounting pole and clamps,800,1,0
+Optional GSM module SIM800L/A7672,800,0,1
+Cloud VM (2 months),1500,0,1
+Domain / misc,500,0,1
+Reference thermometer + measuring cylinder,600,0,1
+Printing (poster + report),1500,0,1
+Travel to sites,2000,0,1

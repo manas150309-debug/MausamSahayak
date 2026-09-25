@@ -1,0 +1,7 @@
+# APPROXIMATE seasonal rainfall normals in mm. PLACEHOLDER VALUES - replace with IMD district normals
+# (https://mausam.imd.gov.in / data.gov.in) before using in the report. Row DEFAULT is the fallback.
+district,state,kharif_rain_mm,rabi_rain_mm,zaid_rain_mm
+DEFAULT,,600,80,60
+Faridabad,Haryana,450,60,40
+Gurugram,Haryana,470,60,40
+Delhi,Delhi,600,50,40

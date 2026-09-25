@@ -1,0 +1,8 @@
+flask>=3.0
+gunicorn>=22.0          # production server for the API
+requests>=2.31
+paho-mqtt>=2.0          # MQTT ingester and simulator
+pandas>=2.0             # crop model training
+scikit-learn>=1.4
+joblib>=1.3
+python-telegram-bot[job-queue]>=21.0   # only needed to run swati_bot/bot.py
