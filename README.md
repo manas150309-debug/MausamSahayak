@@ -1,47 +1,160 @@
-# MausamSahayak - IoT weather, flood alert and crop advisory system
+# MausamSahayak
 
-B.Tech capstone 2026-27. Team, in order: **Manas, Parul, Nishant, Swati, Anil.**
+### Hyperlocal weather monitoring, flood-risk alerts, and crop guidance for communities that need local data most
 
-Outdoor sensor nodes -> MQTT -> backend with live dashboard -> risk engine (flood, heat, crop) -> Hindi/English Telegram bot with SMS fallback.
-A silent or faulty sensor is reported as **UNKNOWN, never "all clear"**. The bot only **advises** and points to the authorities (112, NDMA 1078, district administration).
+[![Python tests](https://github.com/manas150309-debug/MausamSahayak/actions/workflows/ci.yml/badge.svg)](https://github.com/manas150309-debug/MausamSahayak/actions/workflows/ci.yml)
+![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)
+![ESP32](https://img.shields.io/badge/ESP32-IoT-E7352C?logo=espressif&logoColor=white)
+![Status](https://img.shields.io/badge/status-capstone%20prototype-F59E0B)
 
-## Who owns what
-| # | Person | Folder | Role |
-|---|---|---|---|
-| 1 | Manas | `manas_backend/` | MQTT ingest, database, REST API, live dashboard, alert generation, stale-data handling |
-| 2 | Parul | `parul_risk_crop/` | Flood/heat rules, forecast client, crop advisor (rules + Random Forest), threshold validation |
-| 3 | Nishant | `nishant_firmware/` | ESP32 firmware, wiring/calibration/power docs, sensor simulator |
-| 4 | Swati | `swati_bot/` | Telegram bot, Hindi/English text, alert delivery, SMS fallback, user-trial support |
-| 5 | Anil | `anil_docs/` | Data sources, site selection, budget, KVK validation, user trial, poster/presentation/viva/paper docs, Assam case study |
+MausamSahayak is a B.Tech capstone prototype that combines low-cost field sensors, a risk engine, a live dashboard, and bilingual alerts. It is designed for village- or sub-basin pilots where a regional forecast alone may not capture a fast local rise in water level.
 
-## Try it in 2 minutes (no hardware)
-```bash
-pip install -r requirements.txt
-python -m unittest discover -s . -t . -p "test_*.py"     # 108 tests
-python -m manas_backend.cli demo                         # seeds 3 demo stations, serves http://localhost:8000/dashboard
+The safety principle is simple: **missing data is never treated as safe data**. A silent node or failed sensor becomes `UNKNOWN`, not GREEN.
+
+> This project supports awareness and preparedness. It does not replace IMD, CWC, NDMA, district authorities, or professional agricultural advice, and it never issues evacuation orders.
+
+## Why this project is different
+
+- **Fail-safe monitoring:** stale readings and sensor faults create a visible `UNKNOWN` state and an alert.
+- **Upstream-to-downstream warning:** a rapid rise at an upstream node can escalate risk for a connected downstream node before the downstream level changes.
+- **Explainable risk:** every alert includes structured reason codes and the measurements that triggered it.
+- **Last-mile delivery:** Hindi and English Telegram guidance, subscriptions, and optional SMS fallback for RED alerts.
+- **Graceful degradation:** monitoring continues when the external forecast service is unavailable.
+- **Field-ready workflow:** ESP32 firmware, an HTTP/MQTT simulator, calibration instructions, deployment checklists, and a no-hardware demo.
+
+## System architecture
+
+```mermaid
+flowchart LR
+    S[ESP32 sensor nodes] -->|MQTT or HTTP telemetry| I[Validated ingest]
+    I --> D[(SQLite)]
+    D --> R[Risk and crop engine]
+    F[Weather forecast] -. optional .-> R
+    U[Upstream station state] --> R
+    R --> A[Alert service]
+    D --> W[REST API and live dashboard]
+    A --> T[Telegram in Hindi or English]
+    A --> M[SMS fallback for RED]
+    R --> W
 ```
-The demo shows one GREEN station, one RED (flood) station and one UNKNOWN (silent) station. To feed a station from the simulator:
-`python -m nishant_firmware.simulator.simulate --node node01 --scenario heavy_rain --url http://localhost:8000 --api-key dev-key`
-Bot: `TELEGRAM_TOKEN=... API_BASE_URL=http://localhost:8000 python -m swati_bot.bot`
 
-## What is verified and what is not (be honest in the viva)
-| Part | Status |
+Sensor nodes can report temperature, humidity, pressure, interval rainfall, water level, soil moisture, battery voltage, and signal strength. The backend validates each field, rejects implausible values as missing data, ignores duplicate readings, and evaluates flood and heat risk.
+
+## Quick start without hardware
+
+```bash
+git clone https://github.com/manas150309-debug/MausamSahayak.git
+cd MausamSahayak
+
+python -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+
+python -m unittest discover -s . -t . -p "test_*.py"
+python -m manas_backend.cli demo
+```
+
+Open [http://localhost:8000/dashboard](http://localhost:8000/dashboard). The seeded demo includes:
+
+- a GREEN station with normal readings;
+- a RED station with flood conditions; and
+- an `UNKNOWN` station that has stopped reporting.
+
+Send a simulated heavy-rain reading:
+
+```bash
+python -m nishant_firmware.simulator.simulate \
+  --node node01 \
+  --scenario heavy_rain \
+  --url http://localhost:8000 \
+  --api-key dev-key
+```
+
+## Risk states
+
+| State | Meaning | Example trigger |
+|---|---|---|
+| GREEN | No configured warning rule is active | Fresh readings below thresholds |
+| UNKNOWN | Safety cannot be determined | Node stale for more than 30 minutes or a required sensor is missing |
+| YELLOW | Conditions require attention | Elevated river level, rising level, heavy forecast, or sustained rain |
+| ORANGE | High-risk conditions | Rapid rise, intense hourly rain, upstream surge, or near-danger level while rising |
+| RED | Severe conditions | Danger mark crossed, flash rise, or upstream surge near danger |
+
+All thresholds in this repository are starting values. A real deployment must calibrate them using local historical events, field measurements, and expert review.
+
+## Main API
+
+| Endpoint | Purpose |
 |---|---|
-| Risk engine, crop advisor, forecast parser, validation and ML pipelines | Unit-tested (synthetic data only for validation/ML pipelines) |
-| Backend ingest, alerts, REST API, dashboard | Unit-tested and smoke-tested against a live local server |
-| Bot conversation logic, Hindi/English text, alert routing, SMS logic | Unit-tested, including end-to-end against the real API in-process |
-| `swati_bot/bot.py` Telegram glue | **Not run** - needs a real bot token; expect small fixes |
-| ESP32 firmware | **Not compiled or run on hardware** - build, then verify sleep timing, rain counting while asleep, ultrasonic level |
-| `deploy/` Docker files, MQTT broker config | **Not run** |
-| MQTT ingester (`mqtt_ingest.py`) | Message handling tested; live broker connection **not run** |
-| Thresholds, crop ranges, district rainfall normals | **Starting values / placeholders** - must be calibrated and KVK-reviewed |
-| Hindi text | Needs review by a native speaker before the user trial |
-| Assamese | Not supported |
+| `GET /health` | Service health |
+| `GET /api/nodes` | Registered monitoring stations |
+| `GET /api/nodes/<id>/latest` | Latest reading and stale status |
+| `GET /api/nodes/<id>/history?hours=24` | Recent station history |
+| `GET /api/nodes/<id>/risk` | Flood and heat assessment with reasons |
+| `GET /api/nearest?lat=&lon=` | Nearest station and coverage check |
+| `GET /api/crop-advice?lat=&lon=&irrigated=0/1` | Rule-based crop suggestions |
+| `GET /api/alerts?since_id=` | Alert stream used by the bot |
+| `POST /api/readings` | Authenticated HTTP telemetry ingest |
+| `POST /api/nodes` | Authenticated station registration |
 
-## Real data you still must collect
-1. Real historical rain + flood dates -> `anil_docs/tools/fetch_historical_rain.py` -> `parul_risk_crop.validate_thresholds` (files named `*_SYNTHETIC.csv` are for testing code only; never quote their numbers).
-2. Sensor calibration and accuracy tables (`nishant_firmware/docs/calibration.md`).
-3. KVK crop review and a 10+ person bot trial (`anil_docs/docs/`).
+## Repository guide
 
-## Repository size
-About 3,800 lines of code and configuration (about 900 of them tests) plus documentation. The size is what the design needs; nothing is padded.
+| Area | What it contains | Owner |
+|---|---|---|
+| [`manas_backend/`](manas_backend/) | Telemetry validation, database, API, dashboard, alert generation, and stale-data handling | Manas |
+| [`parul_risk_crop/`](parul_risk_crop/) | Flood and heat rules, forecast client, crop adviser, model training, and threshold validation | Parul |
+| [`nishant_firmware/`](nishant_firmware/) | ESP32 firmware, simulator, wiring, calibration, power, and deployment notes | Nishant |
+| [`swati_bot/`](swati_bot/) | Telegram conversation logic, Hindi and English text, subscriptions, alert delivery, and SMS fallback | Swati |
+| [`anil_docs/`](anil_docs/) | Data sources, site selection, budget, evaluation, user trial, KVK review, and capstone documentation | Anil |
+| [`deploy/`](deploy/) | Docker Compose, API image, and Mosquitto configuration | Team |
+
+## Verification status
+
+The automated suite currently contains **108 passing tests** covering risk rules, crop advice, forecast parsing, telemetry validation, backend endpoints, alerts, simulator scenarios, bot logic, and documentation tools.
+
+| Component | Current evidence |
+|---|---|
+| Risk, crop, forecast, validation, and ML pipelines | Unit-tested; validation and ML datasets are synthetic |
+| Backend ingest, REST API, dashboard, and alerts | Unit-tested and smoke-tested with a local server |
+| Bot conversation, bilingual formatting, alert routing, and SMS logic | Unit-tested, including in-process API integration |
+| Telegram transport | Requires a real bot token and live trial |
+| ESP32 firmware | Not yet compiled or field-tested on hardware |
+| Docker and live MQTT broker | Configuration present; live deployment still to be verified |
+| Thresholds and crop ranges | Require local calibration and KVK or domain-expert review |
+
+## Configuration
+
+Copy `.env.example` to `.env`, replace every sample secret, and never commit `.env`.
+
+```bash
+cp .env.example .env
+```
+
+Important settings include `MAUSAM_API_KEY`, database paths, MQTT credentials, `TELEGRAM_TOKEN`, and the optional SMS provider. See the component READMEs for firmware and deployment instructions.
+
+## Responsible deployment checklist
+
+Before presenting results as field evidence:
+
+1. Calibrate rain, water-level, soil, temperature, battery, and signal readings.
+2. Replace all `*_SYNTHETIC.csv` inputs with traceable real datasets.
+3. Validate thresholds against dated flood and non-flood events and report false alarms and misses.
+4. Obtain KVK or qualified agricultural review for crop ranges and wording.
+5. Run a supervised bilingual user trial with at least 10 participants.
+6. Test maintenance, power loss, network loss, alert delivery, and recovery procedures.
+7. Coordinate any public warning pilot with the responsible local authorities.
+
+## Roadmap
+
+- [ ] Compile and field-test the ESP32 firmware
+- [ ] Validate a live MQTT deployment with authenticated node accounts
+- [ ] Calibrate thresholds using real IMD, CWC, and site measurements
+- [ ] Add Assamese or another locally reviewed language pack
+- [ ] Conduct KVK review and a documented user trial
+- [ ] Package a repeatable two-node upstream/downstream pilot
+
+## Team
+
+MausamSahayak is a B.Tech Capstone 2026-27 project by **Manas, Parul, Nishant, Swati, and Anil**.
+
+The software is a research and educational prototype. Review the institute's IPR guidance before public disclosure, deployment, licensing, or patent filing.
