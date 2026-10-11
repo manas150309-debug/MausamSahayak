@@ -16,6 +16,7 @@ class Settings:
     mqtt_password: str = ""
     worker_interval_s: int = 60
     demo_mode: bool = False          # enables public presentation-only simulation controls
+    accuweather_api_key: str = ""
 
     @classmethod
     def from_env(cls):
@@ -29,4 +30,5 @@ class Settings:
             mqtt_user=e("MQTT_USER", ""), mqtt_password=e("MQTT_PASSWORD", ""),
             worker_interval_s=int(e("WORKER_INTERVAL_S", "60")),
             demo_mode=e("MAUSAM_DEMO_MODE", "false").strip().lower() in ("1", "true", "yes", "on"),
+            accuweather_api_key=e("ACCUWEATHER_API_KEY", ""),
         )

@@ -132,12 +132,16 @@ cp .env.example .env
 
 Important settings include `MAUSAM_API_KEY`, database paths, MQTT credentials, `TELEGRAM_TOKEN`, and the optional SMS provider. See the component READMEs for firmware and deployment instructions.
 
+### AccuWeather forecast data
+
+Set `ACCUWEATHER_API_KEY` to enrich flood-risk assessments with AccuWeather's coordinate-to-location lookup and metric 72-hour hourly rainfall forecast. The integration caches responses for 30 minutes to protect quota. If the key, provider, or network is unavailable, the risk engine degrades safely and never treats missing forecast data as safe conditions.
+
 ## Live presentation deployment
 
 The repository includes a Render Blueprint for a reproducible live demo. It runs the real Flask API and dashboard, seeds three presentation stations on an empty ephemeral database, and exposes the scenario simulator while keeping field telemetry writes behind a generated API key.
 
 1. Open [the Render Blueprint setup](https://dashboard.render.com/blueprint/new?repo=https://github.com/manas150309-debug/MausamSahayak).
-2. Review the `mausam-sahayak` web service and choose **Apply**.
+2. Enter `ACCUWEATHER_API_KEY`, review the `mausam-sahayak` web service, and choose **Apply**.
 3. After the health check passes, open `/dashboard` on the generated Render URL.
 
 `MAUSAM_DEMO_MODE=true` is intended only for the public capstone demonstration. Set it to `false` for real deployments so `/api/simulate` and `/api/seed` return `403`.

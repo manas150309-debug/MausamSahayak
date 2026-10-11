@@ -1,19 +1,21 @@
-"""Rainfall forecast client (Parul).
+"""Rainfall forecast clients (Parul).
 
-Uses Open-Meteo (free, no API key). Any failure returns None so the rest of the
-system keeps working - a missing forecast must never crash the alert loop, and
-the risk engine treats a missing forecast as "no extra information".
+AccuWeather is preferred when ``ACCUWEATHER_API_KEY`` is configured. Open-Meteo
+is the zero-secret fallback. Any provider failure degrades safely: a missing
+forecast never crashes the alert loop or gets interpreted as safe weather.
 """
 from __future__ import annotations
 
 import datetime as dt
+import os
 import time
 from typing import Dict, Optional, Tuple
 
 import requests
 
-URL = "https://api.open-meteo.com/v1/forecast"
-_CACHE: Dict[Tuple[float, float], Tuple[float, dict]] = {}
+OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast"
+ACCUWEATHER_BASE = "https://dataservice.accuweather.com"
+_CACHE: Dict[Tuple[str, float, float], Tuple[float, dict]] = {}
 TTL_SECONDS = 30 * 60
 
 
@@ -40,20 +42,70 @@ def parse_open_meteo(payload: dict, now: dt.datetime) -> Optional[dict]:
     return {"next_24h_mm": round(n24, 1), "next_72h_mm": round(n72, 1), "source": "open-meteo"}
 
 
+def parse_accuweather_hourly(payload: list) -> Optional[dict]:
+    """Aggregate metric hourly rain values returned by AccuWeather."""
+    if not isinstance(payload, list) or len(payload) < 24:
+        return None
+    values = []
+    for hour in payload[:72]:
+        rain = (hour or {}).get("Rain") or {}
+        value = rain.get("Value")
+        if value is None:
+            value = ((hour or {}).get("TotalLiquid") or {}).get("Value")
+        try:
+            values.append(max(0.0, float(value or 0.0)))
+        except (TypeError, ValueError):
+            values.append(0.0)
+    return {
+        "next_24h_mm": round(sum(values[:24]), 1),
+        "next_72h_mm": round(sum(values[:72]), 1),
+        "source": "accuweather",
+    }
+
+
+def get_accuweather_forecast(lat: float, lon: float, api_key: str, session=requests) -> Optional[dict]:
+    """Resolve a coordinate to an AccuWeather location key, then fetch 72 h."""
+    headers = {"Authorization": f"Bearer {api_key}", "Accept": "application/json"}
+    location = session.get(
+        f"{ACCUWEATHER_BASE}/locations/v1/geoposition/search",
+        params={"q": f"{lat:.4f},{lon:.4f}"}, headers=headers, timeout=6,
+    )
+    location.raise_for_status()
+    location_payload = location.json()
+    if isinstance(location_payload, list):
+        location_payload = location_payload[0] if location_payload else {}
+    location_key = (location_payload or {}).get("Key")
+    if not location_key:
+        return None
+    hourly = session.get(
+        f"{ACCUWEATHER_BASE}/forecasts/v1/hourly/72hour/{location_key}",
+        params={"metric": "true", "details": "true"}, headers=headers, timeout=8,
+    )
+    hourly.raise_for_status()
+    return parse_accuweather_hourly(hourly.json())
+
+
 def get_forecast(lat: float, lon: float, session=requests, now: Optional[dt.datetime] = None,
-                 use_cache: bool = True) -> Optional[dict]:
-    key = (round(lat, 2), round(lon, 2))
+                 use_cache: bool = True, api_key: Optional[str] = None) -> Optional[dict]:
+    api_key = api_key if api_key is not None else os.environ.get("ACCUWEATHER_API_KEY", "")
+    provider = "accuweather" if api_key else "open-meteo"
+    key = (provider, round(lat, 2), round(lon, 2))
     mono = time.monotonic()
     if use_cache and key in _CACHE and mono - _CACHE[key][0] < TTL_SECONDS:
         return _CACHE[key][1]
     try:
-        r = session.get(URL, params={"latitude": lat, "longitude": lon, "hourly": "precipitation",
-                                     "forecast_days": 4, "timezone": "UTC"}, timeout=10)
-        r.raise_for_status()
-        now = now or dt.datetime.now(dt.timezone.utc)
-        result = parse_open_meteo(r.json(), now)
+        result = get_accuweather_forecast(lat, lon, api_key, session) if api_key else None
     except Exception:
-        return None
+        result = None
+    if result is None:
+        try:
+            r = session.get(OPEN_METEO_URL, params={"latitude": lat, "longitude": lon, "hourly": "precipitation",
+                                                    "forecast_days": 4, "timezone": "UTC"}, timeout=6)
+            r.raise_for_status()
+            now = now or dt.datetime.now(dt.timezone.utc)
+            result = parse_open_meteo(r.json(), now)
+        except Exception:
+            return None
     if result is not None:
         _CACHE[key] = (mono, result)
     return result

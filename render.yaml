@@ -15,3 +15,5 @@ services:
         value: "true"
       - key: MAUSAM_API_KEY
         generateValue: true
+      - key: ACCUWEATHER_API_KEY
+        sync: false

@@ -75,6 +75,16 @@ class ForecastTests(unittest.TestCase):
         self.assertEqual(res["next_24h_mm"], 24.0)
         self.assertEqual(res["next_72h_mm"], 72.0)
 
+    def test_parse_accuweather_hourly_rain(self):
+        hours = [{"Rain": {"Value": 1.5, "Unit": "mm"}} for _ in range(72)]
+        res = forecast.parse_accuweather_hourly(hours)
+        self.assertEqual(res["next_24h_mm"], 36.0)
+        self.assertEqual(res["next_72h_mm"], 108.0)
+        self.assertEqual(res["source"], "accuweather")
+
+    def test_accuweather_short_payload_is_not_trusted(self):
+        self.assertIsNone(forecast.parse_accuweather_hourly([{"Rain": {"Value": 1}}] * 12))
+
     def test_failure_returns_none(self):
         self.assertIsNone(forecast.get_forecast(28.4, 77.3, session=FakeSession(fail=True)))
 

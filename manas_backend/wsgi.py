@@ -19,6 +19,7 @@ if settings.demo_mode:
     finally:
         conn.close()
 
-# Demo deployments stay deterministic and fast even when the third-party
-# forecast provider is unavailable; real deployments keep forecast enrichment.
-app = create_app(settings=settings, forecast_fn=None if settings.demo_mode else get_forecast)
+# A key enables live AccuWeather enrichment. Keyless hosted demos stay fast and
+# deterministic; non-demo deployments retain the Open-Meteo fallback.
+forecast_fn = get_forecast if settings.accuweather_api_key or not settings.demo_mode else None
+app = create_app(settings=settings, forecast_fn=forecast_fn)
