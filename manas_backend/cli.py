@@ -19,17 +19,18 @@ from . import db, ingest, service
 from .config import Settings
 
 DEMO_NODES = [
-    # node_id, name, lat, lon, danger_cm, scenario   (coordinates are approximate demo values)
-    ("node01", "Campus drain (demo)", 28.4089, 77.3178, 300.0, "normal"),
-    ("node02", "Riverbank site (demo)", 28.3700, 77.3800, 450.0, "flood"),
-    ("node03", "Village pond (demo)", 28.4600, 77.2900, 400.0, "silent"),
+    # node_id, name, lat, lon, district, state, danger_cm, scenario
+    # Coordinates identify regional demo coverage; all telemetry is synthetic.
+    ("node01", "Faridabad campus drain (demo)", 28.4089, 77.3178, "Faridabad", "Haryana", 300.0, "normal"),
+    ("node02", "Delhi riverbank site (demo)", 28.6139, 77.2090, "Delhi", "Delhi", 450.0, "flood"),
+    ("node03", "Greater Noida village pond (demo)", 28.4744, 77.5040, "Greater Noida", "Uttar Pradesh", 400.0, "silent"),
 ]
 
 
 def seed_demo(conn, now=None, scenario_override=None):
     now = int(now if now is not None else time.time())
-    for node_id, name, lat, lon, danger, scen in DEMO_NODES:
-        service.add_node(conn, node_id, name, lat, lon, "Faridabad", "Haryana", danger, now)
+    for node_id, name, lat, lon, district, state, danger, scen in DEMO_NODES:
+        service.add_node(conn, node_id, name, lat, lon, district, state, danger, now)
         for r in scenarios.backfill(scenario_override or scen, node_id, now, seed=zlib.crc32(node_id.encode())):
             ingest.store_reading(conn, node_id, r, now)
     return len(DEMO_NODES)

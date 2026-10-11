@@ -249,6 +249,25 @@ class ApiTests(Base):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json["status"], "scenario_applied")
 
+    def test_historical_evidence_endpoint(self):
+        evidence = self.c.get("/api/evidence")
+        self.assertEqual(evidence.status_code, 200)
+        self.assertEqual(evidence.json["source"], "NASA POWER")
+        self.assertEqual(len(evidence.json["locations"]), 3)
+        self.assertEqual(
+            [item["location"] for item in evidence.json["locations"]],
+            ["Faridabad", "Delhi", "Greater Noida"],
+        )
+        self.assertTrue(all(item["days"] == 365 for item in evidence.json["locations"]))
+        self.assertIn("native grid cell", evidence.json["spatial_note"])
+
+    def test_ai_explainer_has_safe_keyless_fallback(self):
+        self.feed("flood")
+        response = self.c.post("/api/nodes/n1/explain", json={"language": "hi", "question": "Risk samjhao"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json["mode"], "verified_fallback")
+        self.assertIn("RED", response.json["text"])
+
 
 class UpstreamTests(Base):
     def test_downstream_warns_from_upstream_surge(self):
@@ -278,6 +297,8 @@ class DemoSeedTests(Base):
         cli.seed_demo(self.conn, NOW)
         levels = {n: service.assess_node(self.conn, n, NOW)["flood"]["level_name"] for n in ("node01", "node02", "node03")}
         self.assertEqual(levels, {"node01": "GREEN", "node02": "RED", "node03": "UNKNOWN"})
+        districts = [node["district"] for node in service.list_nodes(self.conn) if node["node_id"].startswith("node")]
+        self.assertEqual(districts, ["Faridabad", "Delhi", "Greater Noida"])
 
 
 if __name__ == "__main__":

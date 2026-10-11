@@ -4,6 +4,7 @@ from __future__ import annotations
 import hmac
 import os
 import time
+from pathlib import Path
 from typing import Optional
 
 from flask import Flask, g, jsonify, request, send_from_directory
@@ -108,6 +109,47 @@ def create_app(settings: Optional[Settings] = None, forecast_fn=None, clock=time
         since = int(num_arg("since_id") or 0)
         limit = int(min(num_arg("limit") or 100, 500))
         return jsonify({"alerts": service.alerts_since(conn(), since, limit)})
+
+    @app.get("/api/evidence")
+    def evidence():
+        from parul_risk_crop.historical_weather import load_summary
+        data_dir = Path(__file__).parents[1] / "parul_risk_crop" / "data"
+        datasets = (
+            ("Faridabad", 28.4089, 77.3178, "faridabad_nasa_power_2025.csv"),
+            ("Delhi", 28.6139, 77.2090, "delhi_nasa_power_2025.csv"),
+            ("Greater Noida", 28.4744, 77.5040, "greater_noida_nasa_power_2025.csv"),
+        )
+        try:
+            locations = []
+            for name, lat, lon, filename in datasets:
+                summary = load_summary(data_dir / filename)
+                summary.update({"location": name, "coordinates": {"latitude": lat, "longitude": lon}})
+                locations.append(summary)
+            return jsonify({
+                "source": "NASA POWER",
+                "period": locations[0]["period"],
+                "locations": locations,
+                "spatial_note": (
+                    "These nearby NCR coordinates resolve to the same NASA POWER native grid cell, "
+                    "so their 2025 values match. The three named snapshots preserve transparent "
+                    "location coverage without claiming false street-level precision."
+                ),
+                "purpose": "Regional historical baseline for retrospective comparison; not a flood warning source.",
+            })
+        except (OSError, ValueError):
+            return err("historical_dataset_unavailable", 503)
+
+    @app.post("/api/nodes/<node_id>/explain")
+    def explain(node_id):
+        from .ai_explainer import explain_assessment
+        assessment = service.assess_node(conn(), node_id, now(), forecast_fn, settings)
+        if assessment is None:
+            return err("unknown_node", 404)
+        body = request.get_json(silent=True) or {}
+        language = "hi" if body.get("language") == "hi" else "en"
+        result = explain_assessment(assessment, str(body.get("question", "Explain this station risk.")), language,
+                                    settings.openai_api_key, settings.openai_model)
+        return jsonify(result)
 
     # ---- protected write endpoints
     @app.post("/api/readings")

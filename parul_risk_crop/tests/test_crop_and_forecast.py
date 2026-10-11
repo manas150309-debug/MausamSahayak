@@ -3,7 +3,7 @@ import os
 import tempfile
 import unittest
 
-from parul_risk_crop import crop_advisor, forecast, make_sample_crop_data, make_sample_history
+from parul_risk_crop import crop_advisor, forecast, historical_weather, make_sample_crop_data, make_sample_history
 from parul_risk_crop import train_crop_model, validate_thresholds
 
 
@@ -98,6 +98,21 @@ class ForecastTests(unittest.TestCase):
         b = forecast.get_forecast(28.4, 77.3, session=s, now=now)
         self.assertEqual(a, b)
         self.assertEqual(s.calls, 1)
+
+
+class HistoricalWeatherTests(unittest.TestCase):
+    def test_power_payload_becomes_daily_rows(self):
+        payload = {"properties": {"parameter": {
+            "T2M": {"20250101": 20}, "T2M_MIN": {"20250101": 12}, "T2M_MAX": {"20250101": 28},
+            "RH2M": {"20250101": 60}, "PRECTOTCORR": {"20250101": 4.5},
+        }}}
+        rows = historical_weather.parse_power(payload)
+        self.assertEqual(rows[0]["date"], "2025-01-01")
+        self.assertEqual(rows[0]["precipitation_mm"], 4.5)
+
+    def test_power_payload_requires_all_parameters(self):
+        with self.assertRaises(ValueError):
+            historical_weather.parse_power({"properties": {"parameter": {"T2M": {}}}})
 
 
 class PipelineTests(unittest.TestCase):

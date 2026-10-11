@@ -1,6 +1,7 @@
 flask>=3.0
 gunicorn>=22.0          # production server for the API
 requests>=2.31
+openai>=2.0,<3
 paho-mqtt>=2.0          # MQTT ingester and simulator
 pandas>=2.0             # crop model training
 scikit-learn>=1.4

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#eef9ff">
-<meta name="description" content="MausamSahayak is an IoT-powered hyperlocal flood early-warning and crop advisory platform built by a five-member B.Tech capstone team.">
+<meta name="description" content="MausamSahayak is an IoT-powered hyperlocal flood early-warning and crop advisory platform for safer, climate-resilient communities.">
 <title>MausamSahayak - IoT Weather, Flood Alert & Crop Advisory System</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -621,6 +621,17 @@
     flex-direction: column;
     gap: 6px;
   }
+  .evidence-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .evidence-stat { padding: 14px; border-radius: 14px; background: linear-gradient(145deg, #edf9ff, #f5fcf7); border: 1px solid var(--border); }
+  .evidence-stat strong { display: block; color: #0d607e; font: 800 1.2rem var(--font-mono); }
+  .evidence-stat span { display: block; color: var(--fg-muted); font-size: .7rem; margin-top: 4px; }
+  .evidence-city h3 { color: var(--fg); margin: 0 0 3px; font-size: 1rem; }
+  .evidence-city .coordinates { color: var(--fg-dim); font: 600 .68rem var(--font-mono); margin-bottom: 12px; }
+  .evidence-city dl { display: grid; grid-template-columns: 1fr auto; gap: 7px 10px; margin: 0; font-size: .74rem; }
+  .evidence-city dt { color: var(--fg-muted); }
+  .evidence-city dd { color: #0d607e; font-weight: 800; margin: 0; }
+  .evidence-note { color: var(--fg-muted); font-size: .72rem; line-height: 1.5; background: #fff8df; border: 1px solid #f1d58a; border-radius: 12px; padding: 10px 12px; }
+  .ai-output { min-height: 86px; white-space: pre-wrap; line-height: 1.65; padding: 14px; border-radius: 14px; background: #f3fbff; border: 1px solid var(--border-accent); color: var(--fg); }
   .rec-header {
     display: flex;
     justify-content: space-between;
@@ -823,6 +834,7 @@
     .sensor-grid { grid-template-columns: repeat(2, 1fr); }
     .architecture { width: calc(100% - 24px); grid-template-columns: 1fr; }
     .modal-body > div[style*="grid-template-columns:1fr 1fr"] { grid-template-columns: 1fr !important; }
+    .evidence-grid { grid-template-columns: 1fr 1fr; }
   }
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
@@ -849,21 +861,23 @@
     <button class="btn" onclick="openModal('modal-crop')">🌾 Crop Advisor</button>
     <button class="btn" onclick="openModal('modal-alerts')">🚨 Alert Log</button>
     <button class="btn" onclick="openModal('modal-nearest')">📍 Nearest Station</button>
-    <button class="btn" onclick="openModal('modal-capstone')">🎓 Project & Viva</button>
+    <button class="btn" onclick="openModal('modal-about')">🛠️ About System</button>
+    <button class="btn" onclick="openEvidenceLab()">🧠 Evidence + AI</button>
   </div>
 </header>
 
 <section class="hero" aria-labelledby="hero-title">
   <div class="hero-copy">
-    <div class="hero-eyebrow">B.Tech Capstone 2026–27 · Climate Resilience</div>
+    <div class="hero-eyebrow">Hyperlocal IoT Network · Climate Resilience</div>
     <h2 id="hero-title">From local sensor data to <span>timely, explainable action.</span></h2>
     <p>MausamSahayak connects low-cost ESP32 field nodes, fail-safe flood intelligence, bilingual last-mile alerts and climate-aware crop guidance in one operational platform.</p>
     <div class="proof-row">
-      <span class="proof-pill">✓ 108 automated tests</span>
+      <span class="proof-pill">✓ 116 automated tests</span>
       <span class="proof-pill">✓ Hindi + English alerts</span>
       <span class="proof-pill">✓ Offline sensor buffering</span>
       <span class="proof-pill">✓ Explainable risk reasons</span>
       <span class="proof-pill">✓ AccuWeather 72h forecast</span>
+      <span class="proof-pill">✓ 3-city NASA POWER baseline</span>
     </div>
   </div>
   <div class="hero-visual" aria-hidden="true">
@@ -903,6 +917,38 @@
       <div class="kpi-title">Last Network Sync</div>
       <div class="kpi-val" id="kpi-sync">Just now</div>
       <div class="kpi-sub" id="sync-sub">Auto-refresh every 30s</div>
+    </div>
+  </div>
+</div>
+
+<!-- 6. Dataset Evidence + AI Explanation Modal -->
+<div class="modal-overlay" id="modal-evidence">
+  <div class="modal-box" style="max-width:760px;">
+    <div class="modal-header">
+      <h2>🧠 Evidence Lab & AI Explainer</h2>
+      <button class="modal-close" onclick="closeModal('modal-evidence')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div>
+        <p class="section-kicker" style="color:var(--accent); font-weight:800;">REAL HISTORICAL DATASET</p>
+        <p style="color:var(--fg-muted); margin-top:5px;">NASA POWER daily point data provides reproducible 2025 climate snapshots for Faridabad, Delhi and Greater Noida. This regional evidence supports retrospective comparison and never replaces local flood sensors.</p>
+      </div>
+      <div class="evidence-grid" id="evidence-stats"><div class="evidence-stat"><span>Loading dataset evidence…</span></div></div>
+      <div class="evidence-note" id="evidence-note">Loading dataset provenance…</div>
+      <div style="border-top:1px solid var(--border); padding-top:16px;">
+        <h3 style="color:var(--accent);">Ask the bounded AI explainer</h3>
+        <p style="color:var(--fg-muted); margin:6px 0 12px;">The risk engine decides the level. AI only explains verified measurements and reasons.</p>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+          <select class="form-control" id="ai-node">
+            <option value="node01">Faridabad campus drain</option><option value="node02">Delhi riverbank</option><option value="node03">Greater Noida pond</option>
+          </select>
+          <select class="form-control" id="ai-language"><option value="en">English</option><option value="hi">हिन्दी</option></select>
+        </div>
+        <input class="form-control" id="ai-question" style="width:100%; margin-top:10px;" value="Explain the current risk and the most important action." maxlength="300">
+        <button class="btn btn-primary" style="margin-top:10px;" onclick="askAI()">✨ Explain verified risk</button>
+      </div>
+      <div class="ai-output" id="ai-output">Choose a station and ask for an explanation.</div>
+      <small style="color:var(--fg-dim);">Educational prototype only. IMD, CWC, NDMA and local authorities remain the official sources.</small>
     </div>
   </div>
 </div>
@@ -947,9 +993,9 @@
       <div class="form-group">
         <label>Target Station</label>
         <select class="form-control" id="sim-target-node">
-          <option value="node01">node01 - Campus drain (demo)</option>
-          <option value="node02">node02 - Riverbank site (demo)</option>
-          <option value="node03">node03 - Village pond (demo)</option>
+          <option value="node01">node01 - Faridabad campus drain</option>
+          <option value="node02">node02 - Delhi riverbank</option>
+          <option value="node03">node03 - Greater Noida pond</option>
         </select>
       </div>
       <div class="form-group">
@@ -1060,12 +1106,12 @@
   </div>
 </div>
 
-<!-- 5. Capstone / Viva Modal -->
-<div class="modal-overlay" id="modal-capstone">
+<!-- 5. System architecture and team modal -->
+<div class="modal-overlay" id="modal-about">
   <div class="modal-box" style="max-width:700px;">
     <div class="modal-header">
-      <h2>🎓 MausamSahayak - B.Tech Capstone 2026-27</h2>
-      <button class="modal-close" onclick="closeModal('modal-capstone')">&times;</button>
+      <h2>🛠️ About MausamSahayak</h2>
+      <button class="modal-close" onclick="closeModal('modal-about')">&times;</button>
     </div>
     <div class="modal-body">
       <h3 style="color:var(--accent);">Team Roster & Contributions</h3>
@@ -1097,7 +1143,7 @@
 
 <footer>
   <div>
-    <b>MausamSahayak</b> - Capstone Project 2026-27 • Team: Manas, Parul, Nishant, Swati, Anil
+    <b>MausamSahayak</b> - Hyperlocal Climate Resilience Platform • Team: Manas, Parul, Nishant, Swati, Anil
   </div>
   <div class="helpline-tags">
     <span class="helpline-tag">Emergency: 112</span>
@@ -1134,6 +1180,44 @@ function showToast(msg, icon = 'ℹ️') {
 
 function openModal(id) { $('#' + id).classList.add('open'); }
 function closeModal(id) { $('#' + id).classList.remove('open'); }
+
+async function openEvidenceLab() {
+  openModal('modal-evidence');
+  try {
+    const d = await api('/api/evidence');
+    $('#evidence-stats').innerHTML = d.locations.map(city => `
+      <article class="evidence-stat evidence-city">
+        <h3>📍 ${city.location}</h3>
+        <div class="coordinates">${city.coordinates.latitude.toFixed(4)}°N · ${city.coordinates.longitude.toFixed(4)}°E</div>
+        <dl>
+          <dt>Daily observations</dt><dd>${city.days}</dd>
+          <dt>2025 precipitation</dt><dd>${city.total_precipitation_mm} mm</dd>
+          <dt>Rainy days ≥ 1 mm</dt><dd>${city.rainy_days}</dd>
+          <dt>Mean temperature</dt><dd>${city.mean_temperature_c}°C</dd>
+          <dt>Mean humidity</dt><dd>${city.mean_humidity_pct}%</dd>
+          <dt>Wettest day</dt><dd>${city.wettest_day.precipitation_mm} mm</dd>
+        </dl>
+      </article>`).join('');
+    $('#evidence-note').textContent = `Grid-resolution note: ${d.spatial_note}`;
+  } catch (err) {
+    $('#evidence-stats').textContent = 'Dataset evidence unavailable: ' + err.message;
+    $('#evidence-note').textContent = 'Dataset provenance could not be loaded.';
+  }
+}
+
+async function askAI() {
+  const out = $('#ai-output');
+  out.textContent = 'Preparing a bounded explanation from verified station data…';
+  try {
+    const result = await api(`/api/nodes/${$('#ai-node').value}/explain`, {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({language: $('#ai-language').value, question: $('#ai-question').value})
+    });
+    out.textContent = result.text + (result.mode === 'openai' ? `\n\nPowered by ${result.model}` : '\n\nVerified offline explanation · add OPENAI_API_KEY for generative mode');
+  } catch (err) {
+    out.textContent = 'Explanation unavailable: ' + err.message;
+  }
+}
 
 document.querySelectorAll('.modal-overlay').forEach(el => {
   el.addEventListener('click', (e) => {

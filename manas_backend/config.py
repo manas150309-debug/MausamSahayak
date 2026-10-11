@@ -17,6 +17,8 @@ class Settings:
     worker_interval_s: int = 60
     demo_mode: bool = False          # enables public presentation-only simulation controls
     accuweather_api_key: str = ""
+    openai_api_key: str = ""
+    openai_model: str = "gpt-6-luna"
 
     @classmethod
     def from_env(cls):
@@ -31,4 +33,5 @@ class Settings:
             worker_interval_s=int(e("WORKER_INTERVAL_S", "60")),
             demo_mode=e("MAUSAM_DEMO_MODE", "false").strip().lower() in ("1", "true", "yes", "on"),
             accuweather_api_key=e("ACCUWEATHER_API_KEY", ""),
+            openai_api_key=e("OPENAI_API_KEY", ""), openai_model=e("OPENAI_MODEL", "gpt-6-luna"),
         )
