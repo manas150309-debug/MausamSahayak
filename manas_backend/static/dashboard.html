@@ -3,6 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#eef9ff">
+<meta name="description" content="MausamSahayak is an IoT-powered hyperlocal flood early-warning and crop advisory platform built by a five-member B.Tech capstone team.">
 <title>MausamSahayak - IoT Weather, Flood Alert & Crop Advisory System</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -94,6 +96,7 @@
     gap: 14px;
     text-decoration: none;
     color: inherit;
+    flex: 0 0 auto;
   }
   .brand-logo {
     width: 42px;
@@ -130,6 +133,8 @@
   .header-actions {
     display: flex;
     align-items: center;
+    justify-content: flex-end;
+    flex: 1 1 680px;
     gap: 10px;
     flex-wrap: wrap;
   }
@@ -701,32 +706,169 @@
     transform: translateY(0);
     opacity: 1;
   }
+
+  /* Presentation theme: intentionally bright, calm and field-friendly. */
+  [data-theme="light"] {
+    --bg-page: #f4fbff;
+    --bg-gradient:
+      radial-gradient(circle at 8% 6%, rgba(14, 165, 233, 0.16), transparent 26rem),
+      radial-gradient(circle at 94% 4%, rgba(250, 204, 21, 0.18), transparent 24rem),
+      linear-gradient(180deg, #f9fdff 0%, #eef9ff 55%, #f8fcf7 100%);
+    --surface: rgba(255, 255, 255, 0.9);
+    --surface-hover: #ffffff;
+    --surface-solid: #ffffff;
+    --surface-glass: rgba(14, 116, 144, 0.045);
+    --border: rgba(8, 88, 119, 0.13);
+    --border-accent: rgba(2, 132, 199, 0.34);
+    --fg: #113047;
+    --fg-muted: #4f6f82;
+    --fg-dim: #718b99;
+    --accent: #047da5;
+    --accent-glow: rgba(14, 165, 233, 0.16);
+    --green: #07856c;
+    --yellow: #b77908;
+    --orange: #d65c12;
+    --red: #d52c3f;
+    --unknown: #64748b;
+    --shadow: 0 16px 50px -28px rgba(17, 69, 92, 0.34);
+  }
+  [data-theme="light"] header {
+    background: rgba(248, 253, 255, 0.86);
+    box-shadow: 0 8px 35px -28px rgba(11, 83, 112, 0.55);
+  }
+  [data-theme="light"] .brand-text h1 {
+    background: linear-gradient(90deg, #036b94, #07856c);
+    -webkit-background-clip: text;
+  }
+  [data-theme="light"] .badge-GREEN { color: #05654f; background: #e4f7f0; }
+  [data-theme="light"] .badge-YELLOW { color: #8a5800; background: #fff5cf; }
+  [data-theme="light"] .badge-ORANGE { color: #a83e09; background: #ffead9; }
+  [data-theme="light"] .badge-RED { color: #ad1d31; background: #ffe5e9; }
+  [data-theme="light"] .badge-UNKNOWN { color: #475569; background: #edf1f5; }
+  [data-theme="light"] .stale-banner { color: #9f1730; background: #fff0f2; }
+  [data-theme="light"] .reason-pill { color: #8a5800; background: #fff7d9; }
+  [data-theme="light"] .chart-canvas-wrap,
+  [data-theme="light"] .form-control { background: rgba(231, 246, 252, 0.68); }
+  [data-theme="light"] .gauge-track,
+  [data-theme="light"] .score-bar-wrap { background: rgba(14, 116, 144, 0.1); }
+  [data-theme="light"] .modal-overlay { background: rgba(22, 61, 79, 0.38); }
+  [data-theme="light"] .helpline-tag { color: #ad1d31; background: #fff0f2; }
+
+  .hero {
+    width: min(1440px, calc(100% - 48px));
+    margin: 28px auto 8px;
+    border: 1px solid rgba(2, 132, 199, 0.17);
+    border-radius: 28px;
+    background: linear-gradient(118deg, rgba(255,255,255,.96), rgba(232,248,255,.92) 62%, rgba(238,250,241,.94));
+    box-shadow: 0 30px 80px -50px rgba(1, 97, 136, .62);
+    padding: clamp(26px, 4vw, 54px);
+    display: grid;
+    grid-template-columns: minmax(0, 1.45fr) minmax(280px, .55fr);
+    gap: 30px;
+    align-items: center;
+    overflow: hidden;
+    position: relative;
+  }
+  .hero::after {
+    content: '';
+    position: absolute;
+    width: 250px;
+    height: 250px;
+    border-radius: 50%;
+    right: -80px;
+    top: -120px;
+    background: radial-gradient(circle, rgba(250,204,21,.27), rgba(250,204,21,0) 70%);
+  }
+  .hero-eyebrow { color: #057a9f; font-size: .73rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+  .hero h2 { max-width: 850px; margin-top: 12px; font-size: clamp(2rem, 4.4vw, 4rem); line-height: 1.02; letter-spacing: -.055em; color: #10374d; }
+  .hero h2 span { color: #07856c; }
+  .hero-copy > p { max-width: 780px; color: #527383; font-size: clamp(.94rem, 1.3vw, 1.08rem); line-height: 1.72; margin-top: 18px; }
+  .proof-row { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 23px; }
+  .proof-pill { display: inline-flex; gap: 7px; align-items: center; padding: 8px 12px; border-radius: 999px; color: #23566b; background: #fff; border: 1px solid rgba(7,125,165,.16); font-size: .75rem; font-weight: 700; }
+  .hero-visual { min-height: 238px; position: relative; display: grid; place-items: center; }
+  .weather-orbit { width: 218px; height: 218px; border-radius: 50%; display: grid; place-items: center; background: linear-gradient(145deg, #d8f4ff, #e7f9ef); border: 1px solid rgba(7,125,165,.18); box-shadow: inset 0 0 0 18px rgba(255,255,255,.55), 0 28px 55px -33px #047da5; font-size: 4.4rem; position: relative; }
+  .weather-orbit::before, .weather-orbit::after { position: absolute; background: #fff; border: 1px solid rgba(7,125,165,.16); border-radius: 14px; padding: 9px 11px; box-shadow: var(--shadow); font: 700 .7rem var(--font-main); color: #245c70; }
+  .weather-orbit::before { content: '98.7% data validity'; left: -45px; top: 26px; }
+  .weather-orbit::after { content: '30 min fail-safe'; right: -42px; bottom: 26px; }
+
+  .architecture {
+    width: min(1440px, calc(100% - 48px));
+    margin: 4px auto 34px;
+    padding: 20px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,.82);
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+  }
+  .architecture div { padding: 14px; border-radius: 14px; background: linear-gradient(150deg, #f3fbff, #f8fdf9); border: 1px solid rgba(2,132,199,.11); }
+  .architecture b { display: block; color: #0d607e; font-size: .84rem; }
+  .architecture span { display: block; color: var(--fg-muted); font-size: .7rem; margin-top: 4px; line-height: 1.45; }
+
+  @media (max-width: 900px) {
+    .hero { grid-template-columns: 1fr; }
+    .hero-visual { display: none; }
+    .architecture { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 680px) {
+    header { padding: 12px 16px; }
+    .brand-text p { display: none; }
+    .header-actions { width: 100%; overflow-x: auto; flex-wrap: nowrap; justify-content: flex-start; padding-bottom: 3px; }
+    .header-actions .btn { white-space: nowrap; }
+    .hero { width: calc(100% - 24px); margin-top: 16px; padding: 24px 20px; border-radius: 22px; }
+    .metrics-summary, .controls-bar, main { padding-left: 12px; padding-right: 12px; }
+    main { grid-template-columns: 1fr; }
+    .station-card { padding: 16px; }
+    .sensor-grid { grid-template-columns: repeat(2, 1fr); }
+    .architecture { width: calc(100% - 24px); grid-template-columns: 1fr; }
+    .modal-body > div[style*="grid-template-columns:1fr 1fr"] { grid-template-columns: 1fr !important; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
+  }
 </style>
 </head>
-<body data-theme="dark">
+<body data-theme="light">
 
 <header>
   <a href="#" class="brand">
-    <div class="brand-logo">🛰️</div>
+    <div class="brand-logo" aria-hidden="true">🌦️</div>
     <div class="brand-text">
       <h1>MausamSahayak</h1>
-      <p>IoT Mesh • Flood Early Warning • Crop Advisory</p>
+      <p>Hyperlocal intelligence for safer communities</p>
     </div>
   </a>
 
   <div class="header-actions">
     <div class="pulse-badge" id="net-status">
       <div class="pulse-dot"></div>
-      <span>CONNECTED (LOCAL DEV)</span>
+      <span>LIVE DEMO NETWORK</span>
     </div>
     <button class="btn btn-primary" onclick="openModal('modal-simulator')">⚡ Simulator</button>
     <button class="btn" onclick="openModal('modal-crop')">🌾 Crop Advisor</button>
     <button class="btn" onclick="openModal('modal-alerts')">🚨 Alert Log</button>
     <button class="btn" onclick="openModal('modal-nearest')">📍 Nearest Station</button>
     <button class="btn" onclick="openModal('modal-capstone')">🎓 Project & Viva</button>
-    <button class="btn" id="theme-btn" onclick="toggleTheme()" title="Toggle Dark/Light">☀️</button>
   </div>
 </header>
+
+<section class="hero" aria-labelledby="hero-title">
+  <div class="hero-copy">
+    <div class="hero-eyebrow">B.Tech Capstone 2026–27 · Climate Resilience</div>
+    <h2 id="hero-title">From local sensor data to <span>timely, explainable action.</span></h2>
+    <p>MausamSahayak connects low-cost ESP32 field nodes, fail-safe flood intelligence, bilingual last-mile alerts and climate-aware crop guidance in one operational platform.</p>
+    <div class="proof-row">
+      <span class="proof-pill">✓ 108 automated tests</span>
+      <span class="proof-pill">✓ Hindi + English alerts</span>
+      <span class="proof-pill">✓ Offline sensor buffering</span>
+      <span class="proof-pill">✓ Explainable risk reasons</span>
+    </div>
+  </div>
+  <div class="hero-visual" aria-hidden="true">
+    <div class="weather-orbit">🌦️</div>
+  </div>
+</section>
 
 <!-- Metric Overview Strip -->
 <div class="metrics-summary">
@@ -781,6 +923,14 @@
 <main id="stations-grid">
   <!-- Dynamic station cards inserted here -->
 </main>
+
+<section class="architecture" aria-label="MausamSahayak system architecture">
+  <div><b>01 · Sense</b><span>Rain, river level, soil, heat, battery and signal telemetry</span></div>
+  <div><b>02 · Validate</b><span>Range checks, duplicate rejection and explicit missing-data handling</span></div>
+  <div><b>03 · Assess</b><span>Explainable flood, heat and upstream-to-downstream risk rules</span></div>
+  <div><b>04 · Advise</b><span>Seasonal crop fit plus Hindi and English guidance</span></div>
+  <div><b>05 · Alert</b><span>Telegram delivery, SMS fallback and de-escalation guard</span></div>
+</section>
 
 <!-- Modals -->
 
@@ -990,13 +1140,6 @@ document.querySelectorAll('.modal-overlay').forEach(el => {
   });
 });
 
-function toggleTheme() {
-  const b = document.body;
-  const isDark = b.getAttribute('data-theme') === 'dark';
-  b.setAttribute('data-theme', isDark ? 'light' : 'dark');
-  $('#theme-btn').textContent = isDark ? '🌙' : '☀️';
-}
-
 function setFilter(f) {
   currentFilter = f;
   document.querySelectorAll('.filter-btn').forEach(btn => {
@@ -1116,7 +1259,7 @@ async function refreshData() {
 
     updateSummaryKPIs();
     renderCards();
-    $('#net-status').innerHTML = '<div class="pulse-dot"></div><span>CONNECTED (LOCAL DEV)</span>';
+    $('#net-status').innerHTML = '<div class="pulse-dot"></div><span>LIVE DEMO NETWORK</span>';
     $('#kpi-sync').textContent = new Date().toLocaleTimeString();
   } catch (err) {
     $('#net-status').innerHTML = '<span style="color:#ef4444;">● OFFLINE / ERROR</span>';

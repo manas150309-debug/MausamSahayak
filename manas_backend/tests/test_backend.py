@@ -238,6 +238,17 @@ class ApiTests(Base):
         self.assertEqual(r.status_code, 201)
         self.assertEqual(len(self.c.get("/api/nodes").json["nodes"]), 2)
 
+    def test_demo_mutations_are_disabled_by_default(self):
+        self.assertEqual(self.c.post("/api/simulate", json={"node_id": "n1", "scenario": "flood"}).status_code, 403)
+        self.assertEqual(self.c.post("/api/seed", json={}).status_code, 403)
+
+    def test_demo_mode_enables_presenter_simulation(self):
+        settings = Settings(db_path=self.path, api_key="k", demo_mode=True)
+        client = create_app(settings, clock=lambda: NOW).test_client()
+        response = client.post("/api/simulate", json={"node_id": "n1", "scenario": "flood"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json["status"], "scenario_applied")
+
 
 class UpstreamTests(Base):
     def test_downstream_warns_from_upstream_surge(self):

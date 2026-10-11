@@ -15,6 +15,7 @@ class Settings:
     mqtt_user: str = ""
     mqtt_password: str = ""
     worker_interval_s: int = 60
+    demo_mode: bool = False          # enables public presentation-only simulation controls
 
     @classmethod
     def from_env(cls):
@@ -27,4 +28,5 @@ class Settings:
             mqtt_host=e("MQTT_HOST", "localhost"), mqtt_port=int(e("MQTT_PORT", "1883")),
             mqtt_user=e("MQTT_USER", ""), mqtt_password=e("MQTT_PASSWORD", ""),
             worker_interval_s=int(e("WORKER_INTERVAL_S", "60")),
+            demo_mode=e("MAUSAM_DEMO_MODE", "false").strip().lower() in ("1", "true", "yes", "on"),
         )

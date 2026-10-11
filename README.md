@@ -132,6 +132,16 @@ cp .env.example .env
 
 Important settings include `MAUSAM_API_KEY`, database paths, MQTT credentials, `TELEGRAM_TOKEN`, and the optional SMS provider. See the component READMEs for firmware and deployment instructions.
 
+## Live presentation deployment
+
+The repository includes a Render Blueprint for a reproducible live demo. It runs the real Flask API and dashboard, seeds three presentation stations on an empty ephemeral database, and exposes the scenario simulator while keeping field telemetry writes behind a generated API key.
+
+1. Open [the Render Blueprint setup](https://dashboard.render.com/blueprint/new?repo=https://github.com/manas150309-debug/MausamSahayak).
+2. Review the `mausam-sahayak` web service and choose **Apply**.
+3. After the health check passes, open `/dashboard` on the generated Render URL.
+
+`MAUSAM_DEMO_MODE=true` is intended only for the public capstone demonstration. Set it to `false` for real deployments so `/api/simulate` and `/api/seed` return `403`.
+
 ## Responsible deployment checklist
 
 Before presenting results as field evidence:

@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: mausam-sahayak
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn -b 0.0.0.0:$PORT -w 2 --timeout 120 manas_backend.wsgi:app
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8
+      - key: MAUSAM_DB
+        value: /tmp/mausam.db
+      - key: MAUSAM_DEMO_MODE
+        value: "true"
+      - key: MAUSAM_API_KEY
+        generateValue: true

@@ -136,6 +136,8 @@ def create_app(settings: Optional[Settings] = None, forecast_fn=None, clock=time
 
     @app.post("/api/simulate")
     def simulate():
+        if not settings.demo_mode:
+            return err("demo_mode_disabled", 403)
         b = request.get_json(silent=True) or {}
         node_id = str(b.get("node_id", "node01"))
         scenario = b.get("scenario", "heavy_rain")
@@ -152,6 +154,8 @@ def create_app(settings: Optional[Settings] = None, forecast_fn=None, clock=time
 
     @app.post("/api/seed")
     def seed():
+        if not settings.demo_mode:
+            return err("demo_mode_disabled", 403)
         from .cli import seed_demo
         b = request.get_json(silent=True) or {}
         scen = b.get("scenario")
@@ -160,4 +164,3 @@ def create_app(settings: Optional[Settings] = None, forecast_fn=None, clock=time
         return jsonify({"status": "seeded", "count": count})
 
     return app
-
