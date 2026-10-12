@@ -157,7 +157,7 @@ Set `ACCUWEATHER_API_KEY` to enrich flood-risk assessments with AccuWeather's co
 
 The three traceable snapshots in `parul_risk_crop/data/` contain 365 daily observations for Faridabad, Delhi, and Greater Noida downloaded from the official NASA POWER daily point API. The `historical_weather` module preserves a reproducible download pipeline and the dashboard's Evidence Lab calculates its summary statistics from the CSV files rather than hard-coded claims. Because these nearby NCR coordinates resolve to the same native NASA POWER grid cell, their values match; the UI states this limitation instead of implying street-level historical precision.
 
-Set `GEMINI_API_KEY` (preferred) or `OPENAI_API_KEY` to enable the optional bilingual risk explainer. Gemini uses the server-side Generate Content API with `gemini-3.8-flash`; OpenAI uses the Responses API with `gpt-6-luna`. The model receives only the already-computed station assessment and is explicitly prohibited from changing risk levels or issuing evacuation orders. Without a key or during an API failure, the endpoint returns a deterministic verified explanation.
+Set `GEMINI_API_KEY` (preferred) or `OPENAI_API_KEY` to enable the optional bilingual risk explainer. Gemini uses the server-side Generate Content API with the stable `gemini-2.5-flash` model; OpenAI uses the Responses API with `gpt-6-luna`. The model receives only the already-computed station assessment and is explicitly prohibited from changing risk levels or issuing evacuation orders. Without a key or during an API failure, the endpoint returns a deterministic verified explanation.
 
 ## Live presentation deployment
 

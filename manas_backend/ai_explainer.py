@@ -35,7 +35,11 @@ def _gemini_explanation(assessment: dict, question: str, language: str, api_key:
                 "question": question[:300],
                 "assessment": assessment,
             }, default=str)}]}],
-            "generationConfig": {"maxOutputTokens": 220, "temperature": 0.2},
+            "generationConfig": {
+                "maxOutputTokens": 220,
+                "temperature": 0.2,
+                "thinkingConfig": {"thinkingBudget": 0},
+            },
         },
         timeout=18,
     )
@@ -52,7 +56,7 @@ def _gemini_explanation(assessment: dict, question: str, language: str, api_key:
 
 
 def explain_assessment(assessment: dict, question: str, language: str, api_key: str, model: str,
-                       gemini_api_key: str = "", gemini_model: str = "gemini-3.8-flash") -> dict:
+                       gemini_api_key: str = "", gemini_model: str = "gemini-2.5-flash") -> dict:
     if gemini_api_key:
         try:
             return _gemini_explanation(assessment, question, language, gemini_api_key, gemini_model)

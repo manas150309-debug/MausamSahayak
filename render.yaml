@@ -26,7 +26,7 @@ services:
       - key: GEMINI_API_KEY
         sync: false
       - key: GEMINI_MODEL
-        value: gemini-3.8-flash
+        value: gemini-2.5-flash
       - key: SMTP_HOST
         sync: false
       - key: SMTP_PORT
