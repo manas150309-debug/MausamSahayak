@@ -15,7 +15,8 @@ from .config import Settings
 STATIC = os.path.join(os.path.dirname(__file__), "static")
 
 
-def create_app(settings: Optional[Settings] = None, forecast_fn=None, geocode_fn=None, clock=time.time) -> Flask:
+def create_app(settings: Optional[Settings] = None, forecast_fn=None, geocode_fn=None,
+               conditions_fn=None, clock=time.time) -> Flask:
     settings = settings or Settings.from_env()
     app = Flask(__name__, static_folder=None)
     app.config["SETTINGS"] = settings
@@ -189,7 +190,7 @@ def create_app(settings: Optional[Settings] = None, forecast_fn=None, geocode_fn
         if lat is None or lon is None:
             return err("lat_lon_required", 400)
         irrigated = request.args.get("irrigated", "0").lower() in ("1", "true", "yes")
-        res = service.crop_advice(conn(), lat, lon, now(), irrigated, settings)
+        res = service.crop_advice(conn(), lat, lon, now(), irrigated, settings, conditions_fn)
         return (jsonify(res), 404) if "error" in res else jsonify(res)
 
     @app.get("/api/alerts")

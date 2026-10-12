@@ -190,6 +190,8 @@ class ApiTests(Base):
             self.settings, forecast_fn=lambda la, lo: None,
             geocode_fn=lambda q: [{"id": 1, "name": q, "label": f"{q}, Haryana, India",
                                    "latitude": 28.4089, "longitude": 77.3178}], clock=lambda: NOW,
+            conditions_fn=lambda lat, lon: {"temperature_c": 24.0, "humidity_pct": 62.0,
+                                             "soil_moisture_pct": 28.0, "source": "test weather"},
         )
         self.c = self.app.test_client()
 
@@ -276,7 +278,10 @@ class ApiTests(Base):
         self.assertEqual(self.c.get("/api/nearest?lat=28.41&lon=77.32").json["node"]["node_id"], "n1")
         self.assertEqual(self.c.get("/api/nearest?lat=abc&lon=1").status_code, 400)
         self.assertEqual(self.c.get("/api/crop-advice?lat=28.41&lon=77.32&irrigated=1").status_code, 200)
-        self.assertEqual(self.c.get("/api/crop-advice?lat=19&lon=72").status_code, 404)
+        outside = self.c.get("/api/crop-advice?lat=19&lon=72")
+        self.assertEqual(outside.status_code, 200)
+        self.assertEqual(outside.json["coverage_mode"], "location_weather")
+        self.assertEqual(outside.json["weather_source"], "test weather")
 
     def test_location_name_search(self):
         result = self.c.get("/api/locations/search?q=Faridabad")

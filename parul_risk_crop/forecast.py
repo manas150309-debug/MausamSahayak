@@ -109,3 +109,27 @@ def get_forecast(lat: float, lon: float, session=requests, now: Optional[dt.date
     if result is not None:
         _CACHE[key] = (mono, result)
     return result
+
+
+def get_current_conditions(lat: float, lon: float, session=requests) -> Optional[dict]:
+    """Fetch location-specific agronomic inputs for places outside the sensor network."""
+    try:
+        response = session.get(OPEN_METEO_URL, params={
+            "latitude": lat,
+            "longitude": lon,
+            "current": "temperature_2m,relative_humidity_2m,soil_moisture_0_to_1cm",
+            "timezone": "auto",
+        }, timeout=8)
+        response.raise_for_status()
+        current = response.json().get("current") or {}
+        temperature = float(current["temperature_2m"])
+        humidity = current.get("relative_humidity_2m")
+        soil_fraction = current.get("soil_moisture_0_to_1cm")
+        return {
+            "temperature_c": round(temperature, 1),
+            "humidity_pct": None if humidity is None else round(float(humidity), 1),
+            "soil_moisture_pct": None if soil_fraction is None else round(float(soil_fraction) * 100, 1),
+            "source": "Open-Meteo location forecast",
+        }
+    except (KeyError, TypeError, ValueError, requests.RequestException):
+        return None

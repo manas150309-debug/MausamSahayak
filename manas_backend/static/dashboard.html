@@ -875,7 +875,7 @@
     <h2 id="hero-title">From local sensor data to <span>timely, explainable action.</span></h2>
     <p>MausamSahayak connects low-cost ESP32 field nodes, fail-safe flood intelligence, bilingual last-mile alerts and climate-aware crop guidance in one operational platform.</p>
     <div class="proof-row">
-      <span class="proof-pill">✓ 123 automated tests</span>
+      <span class="proof-pill">✓ 124 automated tests</span>
       <span class="proof-pill">✓ Hindi + English alerts</span>
       <span class="proof-pill">✓ Offline sensor buffering</span>
       <span class="proof-pill">✓ Explainable risk reasons</span>
@@ -1718,16 +1718,20 @@ async function queryCropAdvice() {
 
   try {
     const data = await api(`/api/crop-advice?lat=${lat}&lon=${lon}&irrigated=${irrigated}`);
+    const sourceLabel = data.coverage_mode === 'location_weather'
+      ? `Selected location · ${escapeHtml(data.weather_source)}`
+      : `Station: <b>${escapeHtml(data.node_id)}</b> (${data.distance_km} km)`;
     let html = `
       <div style="background:var(--surface-glass); border:1px solid var(--border); border-radius:var(--radius-sm); padding:10px;">
         <div style="display:flex; justify-content:space-between; font-weight:700;">
           <span>Season: <b style="color:var(--accent); text-transform:uppercase;">${data.season}</b></span>
-          <span>Station: <b>${data.node_id}</b> (${data.distance_km} km)</span>
+          <span>${sourceLabel}</span>
         </div>
         <div style="font-size:0.75rem; color:var(--fg-muted); margin-top:4px;">
           7d Mean Temp: <b>${data.inputs.mean_temp_c_7d}°C</b> • District Rain Normal: <b>${data.inputs.seasonal_rain_normal_mm}mm</b> • Soil: <b>${fmt(data.inputs.soil_moisture_pct, '%')}</b>
         </div>
       </div>
+      ${data.coverage_mode === 'location_weather' ? '<div class="rec-card" style="border-color:var(--yellow);">ℹ️ Outside the sensor network: recommendations use location-specific weather and a regional seasonal baseline.</div>' : ''}
       <h4 style="margin-top:6px; font-size:0.85rem; color:var(--fg-muted);">Recommended Crops (Rule-Engine Evaluated):</h4>
     `;
 

@@ -1,5 +1,5 @@
 """Gunicorn entry point with an optional, idempotent presentation bootstrap."""
-from parul_risk_crop.forecast import get_forecast
+from parul_risk_crop.forecast import get_current_conditions, get_forecast
 
 from .api import create_app
 from .config import Settings
@@ -22,4 +22,4 @@ if settings.demo_mode:
 # A key enables live AccuWeather enrichment. Keyless hosted demos stay fast and
 # deterministic; non-demo deployments retain the Open-Meteo fallback.
 forecast_fn = get_forecast if settings.accuweather_api_key or not settings.demo_mode else None
-app = create_app(settings=settings, forecast_fn=forecast_fn)
+app = create_app(settings=settings, forecast_fn=forecast_fn, conditions_fn=get_current_conditions)

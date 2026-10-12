@@ -119,7 +119,7 @@ All thresholds in this repository are starting values. A real deployment must ca
 
 ## Verification status
 
-The automated suite currently contains **123 passing tests** covering risk rules, crop advice, place-name geocoding, account authentication, email/SMS delivery routing, historical dataset ingestion, Gemini integration and AI fallback safety, telemetry validation, backend endpoints, alerts, simulator scenarios, bot logic, and documentation tools.
+The automated suite currently contains **124 passing tests** covering risk rules, nationwide location-weather crop advice, place-name geocoding, account authentication, email/SMS delivery routing, historical dataset ingestion, Gemini integration and AI fallback safety, telemetry validation, backend endpoints, alerts, simulator scenarios, bot logic, and documentation tools.
 
 | Component | Current evidence |
 |---|---|

@@ -106,6 +106,14 @@ class ForecastTests(unittest.TestCase):
     def test_bad_payload_returns_none(self):
         self.assertIsNone(forecast.get_forecast(28.4, 77.3, session=FakeSession({"hourly": {}}), use_cache=False))
 
+    def test_location_conditions_convert_soil_fraction_to_percent(self):
+        session = FakeSession({"current": {"temperature_2m": 25.2, "relative_humidity_2m": 81,
+                                            "soil_moisture_0_to_1cm": 0.177}})
+        result = forecast.get_current_conditions(26.84, 80.92, session=session)
+        self.assertEqual(result["temperature_c"], 25.2)
+        self.assertEqual(result["soil_moisture_pct"], 17.7)
+        self.assertEqual(result["source"], "Open-Meteo location forecast")
+
     def test_cache(self):
         now = dt.datetime.now(dt.timezone.utc)
         s = FakeSession(payload(now, hours=120))

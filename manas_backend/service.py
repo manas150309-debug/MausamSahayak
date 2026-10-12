@@ -206,23 +206,42 @@ def alerts_since(conn, since_id=0, limit=100) -> List[dict]:
 
 
 # ------------------------------------------------------------------- crops
-def crop_advice(conn, lat, lon, now, irrigated=False, settings: Optional[Settings] = None):
+def crop_advice(conn, lat, lon, now, irrigated=False, settings: Optional[Settings] = None,
+                conditions_fn=None):
     settings = settings or Settings()
     near = nearest_node(conn, lat, lon, settings.max_node_distance_km)
-    if near is None or not near["within_range"]:
+    if near is None:
         return {"error": "no_station_in_range", "nearest": near}
+    coverage_mode = "sensor_station"
+    weather_source = "MausamSahayak sensor network"
     node = near["node"]
-    last = latest_reading(conn, node["node_id"])
-    if last is None:
-        return {"error": "no_data", "nearest": near}
-    week = conn.execute("SELECT AVG(temperature_c) t FROM readings WHERE node_id=? AND ts>? AND temperature_c IS NOT NULL",
-                        (node["node_id"], int(now - 7 * 86400))).fetchone()["t"]
-    temp = week if week is not None else last["temperature_c"]
+    if near["within_range"]:
+        last = latest_reading(conn, node["node_id"])
+        if last is None:
+            return {"error": "no_data", "nearest": near}
+        week = conn.execute("SELECT AVG(temperature_c) t FROM readings WHERE node_id=? AND ts>? AND temperature_c IS NOT NULL",
+                            (node["node_id"], int(now - 7 * 86400))).fetchone()["t"]
+        temp = week if week is not None else last["temperature_c"]
+        humidity = last.get("humidity_pct")
+        soil_moisture = last.get("soil_moisture_pct")
+        rain_district = node.get("district")
+    else:
+        if conditions_fn is None:
+            return {"error": "no_station_in_range", "nearest": near}
+        conditions = conditions_fn(lat, lon)
+        if not conditions:
+            return {"error": "location_weather_unavailable", "nearest": near}
+        coverage_mode = "location_weather"
+        weather_source = conditions.get("source", "location forecast")
+        temp = conditions.get("temperature_c")
+        humidity = conditions.get("humidity_pct")
+        soil_moisture = conditions.get("soil_moisture_pct")
+        rain_district = None
     if temp is None:
         return {"error": "no_temperature", "nearest": near}
     season = crop_advisor.season_for(dt.datetime.fromtimestamp(now, dt.timezone(dt.timedelta(hours=5, minutes=30))).date())
-    rain = crop_advisor.seasonal_rain_normal(node.get("district"), season)
-    recs = crop_advisor.recommend(season, temp, rain, last["soil_moisture_pct"], irrigated=irrigated)
+    rain = crop_advisor.seasonal_rain_normal(rain_district, season)
+    recs = crop_advisor.recommend(season, temp, rain, soil_moisture, irrigated=irrigated)
     ml_recs = []
     try:
         import os
@@ -231,14 +250,16 @@ def crop_advice(conn, lat, lon, now, irrigated=False, settings: Optional[Setting
             import joblib
             from parul_risk_crop.train_crop_model import predict_top
             model = joblib.load(model_path)
-            hum = float(last["humidity_pct"]) if last.get("humidity_pct") is not None else 65.0
+            hum = float(humidity) if humidity is not None else 65.0
             ml_recs = predict_top(model, temp, hum, rain, top_n=3)
     except Exception:
         ml_recs = []
-    return {"node_id": node["node_id"], "distance_km": near["distance_km"], "season": season,
+    return {"node_id": node["node_id"] if coverage_mode == "sensor_station" else None,
+            "distance_km": near["distance_km"] if coverage_mode == "sensor_station" else None,
+            "coverage_mode": coverage_mode, "weather_source": weather_source, "season": season,
             "irrigated": irrigated,
             "inputs": {"mean_temp_c_7d": round(temp, 1), "seasonal_rain_normal_mm": rain,
-                       "soil_moisture_pct": last["soil_moisture_pct"], "district": node.get("district")},
+                       "soil_moisture_pct": soil_moisture,
+                       "district": node.get("district") if coverage_mode == "sensor_station" else "Selected location"},
             "recommendations": recs,
             "ml_recommendations": ml_recs}
-
