@@ -190,10 +190,46 @@ class ApiTests(Base):
 
     def test_health_and_dashboard(self):
         self.assertEqual(self.c.get("/health").json["status"], "ok")
+        self.assertEqual(self.c.get("/dashboard").status_code, 302)
+        self.assertEqual(self.c.get("/login").status_code, 200)
+        signup = self.c.post("/api/auth/signup", json={
+            "name": "Test User", "email": "test@example.com", "phone": "+919876543210",
+            "password": "weather123", "alert_location": "Delhi", "language": "en",
+        })
+        self.assertEqual(signup.status_code, 201)
         r = self.c.get("/dashboard")
         self.assertEqual(r.status_code, 200)
         self.assertIn(b"MausamSahayak", r.data)
         r.close()
+
+    def test_signup_login_logout_and_delivery_history(self):
+        payload = {"name": "Manas Gupta", "email": "manas@example.com", "phone": "9876543210",
+                   "password": "Mausam123", "alert_location": "All NCR", "language": "hi"}
+        signup = self.c.post("/api/auth/signup", json=payload)
+        self.assertEqual(signup.status_code, 201)
+        self.assertEqual(signup.json["welcome_delivery"], {"email": "dry_run", "sms": "dry_run"})
+        self.assertEqual(len(self.c.get("/api/notifications").json["deliveries"]), 2)
+        self.assertEqual(self.c.post("/api/auth/signup", json=payload).status_code, 400)
+        self.assertEqual(self.c.post("/api/auth/logout").status_code, 200)
+        self.assertEqual(self.c.get("/api/auth/me").status_code, 401)
+        self.assertEqual(self.c.post("/api/auth/login", json={"email": payload["email"], "password": "wrong"}).status_code, 401)
+        login = self.c.post("/api/auth/login", json={"email": payload["email"], "password": payload["password"]})
+        self.assertEqual(login.status_code, 200)
+        self.assertEqual(login.json["user"]["name"], "Manas Gupta")
+
+    def test_alert_preferences_are_user_controlled(self):
+        self.c.post("/api/auth/signup", json={"name": "Alert User", "email": "alert@example.com",
+                    "phone": "+919876543211", "password": "Weather123", "alert_location": "Faridabad"})
+        changed = self.c.put("/api/auth/preferences", json={"alert_location": "Greater Noida",
+                             "language": "hi", "email_alerts": True, "sms_alerts": False})
+        self.assertEqual(changed.status_code, 200)
+        self.assertEqual(changed.json["user"]["alert_location"], "Greater Noida")
+        self.assertEqual(changed.json["user"]["sms_alerts"], 0)
+
+    def test_signup_rejects_weak_or_invalid_identity(self):
+        invalid = self.c.post("/api/auth/signup", json={"name": "X", "email": "bad", "phone": "123",
+                              "password": "short", "alert_location": "Moon"})
+        self.assertEqual(invalid.status_code, 400)
 
     def test_write_requires_key(self):
         self.assertEqual(self.c.post("/api/readings", json={"node_id": "n1", "temperature_c": 30}).status_code, 401)
@@ -245,9 +281,12 @@ class ApiTests(Base):
     def test_demo_mode_enables_presenter_simulation(self):
         settings = Settings(db_path=self.path, api_key="k", demo_mode=True)
         client = create_app(settings, clock=lambda: NOW).test_client()
+        client.post("/api/auth/signup", json={"name": "Demo User", "email": "demo@example.com",
+                    "phone": "+919876543212", "password": "Weather123", "alert_location": "All NCR"})
         response = client.post("/api/simulate", json={"node_id": "n1", "scenario": "flood"})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json["status"], "scenario_applied")
+        self.assertGreaterEqual(response.json["notifications_processed"], 2)
 
     def test_historical_evidence_endpoint(self):
         evidence = self.c.get("/api/evidence")

@@ -4,7 +4,7 @@ import time
 
 from parul_risk_crop.forecast import get_forecast
 
-from . import db, service
+from . import db, notifications, service
 from .config import Settings
 
 log = logging.getLogger("worker")
@@ -15,6 +15,7 @@ def run_once(settings: Settings, forecast_fn=get_forecast, now=None):
     try:
         db.init_db(conn)
         created = service.run_alert_check(conn, int(now if now is not None else time.time()), forecast_fn, settings)
+        notifications.dispatch_alerts(conn, created, settings, int(now if now is not None else time.time()))
         for a in created:
             log.warning("ALERT node=%s kind=%s %s -> %s stale=%s", a["node_id"], a["kind"],
                         a["previous_level_name"], a["level_name"], a["stale"])

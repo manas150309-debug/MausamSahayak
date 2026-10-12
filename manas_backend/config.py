@@ -19,6 +19,16 @@ class Settings:
     accuweather_api_key: str = ""
     openai_api_key: str = ""
     openai_model: str = "gpt-6-luna"
+    session_secret: str = ""
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from: str = ""
+    sms_provider: str = "dryrun"
+    twilio_sid: str = ""
+    twilio_token: str = ""
+    twilio_from: str = ""
 
     @classmethod
     def from_env(cls):
@@ -34,4 +44,10 @@ class Settings:
             demo_mode=e("MAUSAM_DEMO_MODE", "false").strip().lower() in ("1", "true", "yes", "on"),
             accuweather_api_key=e("ACCUWEATHER_API_KEY", ""),
             openai_api_key=e("OPENAI_API_KEY", ""), openai_model=e("OPENAI_MODEL", "gpt-6-luna"),
+            session_secret=e("SESSION_SECRET", ""),
+            smtp_host=e("SMTP_HOST", ""), smtp_port=int(e("SMTP_PORT", "587")),
+            smtp_user=e("SMTP_USER", ""), smtp_password=e("SMTP_PASSWORD", ""),
+            smtp_from=e("SMTP_FROM", ""), sms_provider=e("SMS_PROVIDER", "dryrun"),
+            twilio_sid=e("TWILIO_SID", ""), twilio_token=e("TWILIO_TOKEN", ""),
+            twilio_from=e("TWILIO_FROM", ""),
         )

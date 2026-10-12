@@ -18,6 +18,30 @@ CREATE TABLE IF NOT EXISTS alerts (
   kind TEXT NOT NULL, level INTEGER NOT NULL, previous_level INTEGER,
   stale INTEGER NOT NULL DEFAULT 0, reasons TEXT NOT NULL);
 CREATE INDEX IF NOT EXISTS idx_alerts_node_kind ON alerts(node_id, kind, id);
+CREATE TABLE IF NOT EXISTS users (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  email TEXT NOT NULL UNIQUE COLLATE NOCASE,
+  phone TEXT NOT NULL,
+  password_hash TEXT NOT NULL,
+  alert_location TEXT NOT NULL DEFAULT 'All NCR',
+  language TEXT NOT NULL DEFAULT 'en',
+  email_alerts INTEGER NOT NULL DEFAULT 1,
+  sms_alerts INTEGER NOT NULL DEFAULT 1,
+  active INTEGER NOT NULL DEFAULT 1,
+  created_at INTEGER NOT NULL,
+  last_login_at INTEGER);
+CREATE TABLE IF NOT EXISTS notification_deliveries (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  alert_id INTEGER,
+  channel TEXT NOT NULL,
+  destination_masked TEXT NOT NULL,
+  status TEXT NOT NULL,
+  detail TEXT,
+  created_at INTEGER NOT NULL,
+  UNIQUE(user_id, alert_id, channel));
+CREATE INDEX IF NOT EXISTS idx_notification_user ON notification_deliveries(user_id, id);
 """
 
 

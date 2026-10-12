@@ -632,6 +632,14 @@
   .evidence-city dd { color: #0d607e; font-weight: 800; margin: 0; }
   .evidence-note { color: var(--fg-muted); font-size: .72rem; line-height: 1.5; background: #fff8df; border: 1px solid #f1d58a; border-radius: 12px; padding: 10px 12px; }
   .ai-output { min-height: 86px; white-space: pre-wrap; line-height: 1.65; padding: 14px; border-radius: 14px; background: #f3fbff; border: 1px solid var(--border-accent); color: var(--fg); }
+  .account-btn { display: flex; align-items: center; gap: 7px; }
+  .account-avatar { width: 25px; height: 25px; display: grid; place-items: center; border-radius: 50%; background: linear-gradient(135deg,#1f8bd2,#18aa83); color: #fff; font-size: .68rem; font-weight: 900; }
+  .delivery-list { display: grid; gap: 8px; }
+  .delivery-item { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; padding: 10px 12px; border: 1px solid var(--border); border-radius: 12px; background: #f8fcfd; font-size: .74rem; }
+  .delivery-status { font-weight: 800; text-transform: uppercase; font-size: .64rem; }
+  .delivery-status.sent { color: var(--green); }
+  .delivery-status.dry_run { color: #b57400; }
+  .delivery-status.failed { color: var(--red); }
   .rec-header {
     display: flex;
     justify-content: space-between;
@@ -863,6 +871,7 @@
     <button class="btn" onclick="openModal('modal-nearest')">📍 Nearest Station</button>
     <button class="btn" onclick="openModal('modal-about')">🛠️ About System</button>
     <button class="btn" onclick="openEvidenceLab()">🧠 Evidence + AI</button>
+    <button class="btn account-btn" onclick="openAccount()"><span class="account-avatar" id="account-avatar">U</span><span id="account-name">Account</span></button>
   </div>
 </header>
 
@@ -872,7 +881,7 @@
     <h2 id="hero-title">From local sensor data to <span>timely, explainable action.</span></h2>
     <p>MausamSahayak connects low-cost ESP32 field nodes, fail-safe flood intelligence, bilingual last-mile alerts and climate-aware crop guidance in one operational platform.</p>
     <div class="proof-row">
-      <span class="proof-pill">✓ 116 automated tests</span>
+      <span class="proof-pill">✓ 119 automated tests</span>
       <span class="proof-pill">✓ Hindi + English alerts</span>
       <span class="proof-pill">✓ Offline sensor buffering</span>
       <span class="proof-pill">✓ Explainable risk reasons</span>
@@ -1135,6 +1144,33 @@
   </div>
 </div>
 
+<!-- 7. Account and alert preferences -->
+<div class="modal-overlay" id="modal-account">
+  <div class="modal-box" style="max-width:650px;">
+    <div class="modal-header">
+      <h2>👤 My Alert Profile</h2>
+      <button class="modal-close" onclick="closeModal('modal-account')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="rec-card">
+        <div class="rec-header"><span id="profile-name">Loading…</span><span style="color:var(--green);">● Alerts active</span></div>
+        <div id="profile-contact" style="color:var(--fg-muted);font-size:.76rem;"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div class="form-group"><label>Alert region</label><select class="form-control" id="pref-location"><option>All NCR</option><option>Faridabad</option><option>Delhi</option><option>Greater Noida</option></select></div>
+        <div class="form-group"><label>Language</label><select class="form-control" id="pref-language"><option value="en">English</option><option value="hi">हिन्दी</option></select></div>
+      </div>
+      <div style="display:flex;gap:18px;flex-wrap:wrap;">
+        <label style="display:flex;gap:7px;align-items:center;"><input type="checkbox" id="pref-email" style="width:auto;" checked> Email alerts</label>
+        <label style="display:flex;gap:7px;align-items:center;"><input type="checkbox" id="pref-sms" style="width:auto;" checked> SMS alerts</label>
+      </div>
+      <div style="display:flex;gap:10px;"><button class="btn btn-primary" onclick="savePreferences()">Save alert preferences</button><button class="btn" onclick="logout()">Sign out</button></div>
+      <div><h3 style="color:var(--accent);margin-bottom:9px;">Recent deliveries</h3><div class="delivery-list" id="delivery-list"><span style="color:var(--fg-muted);">Loading delivery history…</span></div></div>
+      <small style="color:var(--fg-dim);">A dry-run status means the delivery pipeline worked but SMTP or Twilio credentials are not configured yet.</small>
+    </div>
+  </div>
+</div>
+
 <!-- Toast -->
 <div class="toast" id="toast">
   <span id="toast-icon">ℹ️</span>
@@ -1158,9 +1194,11 @@ let currentFilter = 'ALL';
 let cachedNodes = [];
 let cachedRisks = {};
 let cachedHistories = {};
+let currentUser = null;
 
 const $ = (s) => document.querySelector(s);
 const fmt = (v, u = "") => (v === null || v === undefined ? "-" : v + u);
+const escapeHtml = (value) => String(value).replace(/[&<>'"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch]));
 const api = async (url, opts = {}) => {
   const r = await fetch(url, opts);
   if (!r.ok) {
@@ -1180,6 +1218,48 @@ function showToast(msg, icon = 'ℹ️') {
 
 function openModal(id) { $('#' + id).classList.add('open'); }
 function closeModal(id) { $('#' + id).classList.remove('open'); }
+
+async function loadAccount() {
+  try {
+    const data = await api('/api/auth/me');
+    currentUser = data.user;
+    $('#account-name').textContent = currentUser.name.split(' ')[0];
+    $('#account-avatar').textContent = currentUser.name.charAt(0).toUpperCase();
+    $('#profile-name').textContent = currentUser.name;
+    $('#profile-contact').textContent = `${currentUser.email} · ${currentUser.phone}`;
+    $('#pref-location').value = currentUser.alert_location;
+    $('#pref-language').value = currentUser.language;
+    $('#pref-email').checked = Boolean(currentUser.email_alerts);
+    $('#pref-sms').checked = Boolean(currentUser.sms_alerts);
+  } catch (err) {
+    if (err.message === 'authentication_required') location.assign('/login');
+  }
+}
+
+async function openAccount() {
+  openModal('modal-account');
+  await loadAccount();
+  try {
+    const data = await api('/api/notifications');
+    $('#delivery-list').innerHTML = data.deliveries.length ? data.deliveries.map(item => `
+      <div class="delivery-item"><span>${item.channel === 'email' ? '✉️' : '📱'}</span><span>${escapeHtml(item.channel.toUpperCase())} · ${escapeHtml(item.destination_masked)}<br><small>${new Date(item.created_at*1000).toLocaleString()}</small></span><span class="delivery-status ${escapeHtml(item.status)}">${escapeHtml(item.status.replace('_',' '))}</span></div>`).join('') : '<span style="color:var(--fg-muted);">No delivery attempts yet.</span>';
+  } catch (err) { $('#delivery-list').textContent = 'Could not load delivery history.'; }
+}
+
+async function savePreferences() {
+  try {
+    await api('/api/auth/preferences', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({
+      alert_location:$('#pref-location').value, language:$('#pref-language').value,
+      email_alerts:$('#pref-email').checked, sms_alerts:$('#pref-sms').checked
+    })});
+    await loadAccount(); showToast('Alert preferences saved', '✅');
+  } catch (err) { showToast(err.message, '⚠️'); }
+}
+
+async function logout() {
+  await api('/api/auth/logout', {method:'POST'});
+  location.assign('/login');
+}
 
 async function openEvidenceLab() {
   openModal('modal-evidence');
@@ -1713,6 +1793,7 @@ if (alertsBtn) {
 }
 
 // --- Init & Interval ---
+loadAccount();
 refreshData();
 setInterval(refreshData, 30000);
 window.addEventListener('resize', renderCards);

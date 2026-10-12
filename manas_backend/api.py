@@ -7,9 +7,9 @@ import time
 from pathlib import Path
 from typing import Optional
 
-from flask import Flask, g, jsonify, request, send_from_directory
+from flask import Flask, g, jsonify, redirect, request, send_from_directory, session
 
-from . import db, ingest, service
+from . import auth, db, ingest, notifications, service
 from .config import Settings
 
 STATIC = os.path.join(os.path.dirname(__file__), "static")
@@ -19,6 +19,13 @@ def create_app(settings: Optional[Settings] = None, forecast_fn=None, clock=time
     settings = settings or Settings.from_env()
     app = Flask(__name__)
     app.config["SETTINGS"] = settings
+    app.secret_key = settings.session_secret or settings.api_key or "mausam-dev-session-secret"
+    app.config.update(
+        SESSION_COOKIE_HTTPONLY=True,
+        SESSION_COOKIE_SAMESITE="Lax",
+        SESSION_COOKIE_SECURE=bool(os.environ.get("RENDER")),
+        PERMANENT_SESSION_LIFETIME=60 * 60 * 24 * 14,
+    )
 
     # a throw-away connection makes sure the schema exists
     boot = db.connect(settings.db_path)
@@ -57,9 +64,70 @@ def create_app(settings: Optional[Settings] = None, forecast_fn=None, clock=time
         return jsonify({"status": "ok", "time": now()})
 
     @app.get("/")
+    def home():
+        return redirect("/dashboard")
+
+    @app.get("/login")
+    def login_page():
+        if session.get("user_id"):
+            return redirect("/dashboard")
+        return send_from_directory(STATIC, "login.html")
+
     @app.get("/dashboard")
     def dashboard():
+        if not session.get("user_id"):
+            return redirect("/login")
         return send_from_directory(STATIC, "dashboard.html")
+
+    # ---- user accounts and notification preferences
+    @app.post("/api/auth/signup")
+    def signup():
+        try:
+            user = auth.create_user(conn(), request.get_json(silent=True) or {}, now())
+        except auth.ValidationError as exc:
+            return err(str(exc), 400)
+        session.clear()
+        session["user_id"] = user["id"]
+        session.permanent = True
+        delivery = notifications.send_welcome(conn(), user, settings, now())
+        return jsonify({"user": user, "welcome_delivery": delivery}), 201
+
+    @app.post("/api/auth/login")
+    def login():
+        body = request.get_json(silent=True) or {}
+        user = auth.authenticate(conn(), str(body.get("email", "")), str(body.get("password", "")), now())
+        if user is None:
+            return err("Invalid email or password", 401)
+        session.clear()
+        session["user_id"] = user["id"]
+        session.permanent = True
+        return jsonify({"user": user})
+
+    @app.post("/api/auth/logout")
+    def logout():
+        session.clear()
+        return jsonify({"status": "signed_out"})
+
+    @app.get("/api/auth/me")
+    def me():
+        user = auth.get_user(conn(), session.get("user_id", 0)) if session.get("user_id") else None
+        return (jsonify({"user": user}), 200) if user else err("authentication_required", 401)
+
+    @app.put("/api/auth/preferences")
+    def preferences():
+        if not session.get("user_id"):
+            return err("authentication_required", 401)
+        try:
+            user = auth.update_preferences(conn(), session["user_id"], request.get_json(silent=True) or {})
+        except auth.ValidationError as exc:
+            return err(str(exc), 400)
+        return jsonify({"user": user})
+
+    @app.get("/api/notifications")
+    def notification_history():
+        if not session.get("user_id"):
+            return err("authentication_required", 401)
+        return jsonify({"deliveries": notifications.delivery_history(conn(), session["user_id"])})
 
     @app.get("/api/nodes")
     def nodes():
@@ -162,7 +230,10 @@ def create_app(settings: Optional[Settings] = None, forecast_fn=None, clock=time
         res = ingest.store_reading(conn(), str(body["node_id"]), body, now())
         if not res.ok:
             return err(res.reason, 404 if res.reason == "unknown_node" else 422)
-        return jsonify({"status": res.reason, "dropped_fields": res.dropped_fields}), (201 if res.stored else 200)
+        created = service.run_alert_check(conn(), now(), forecast_fn, settings) if res.stored else []
+        delivered = notifications.dispatch_alerts(conn(), created, settings, now())
+        return jsonify({"status": res.reason, "dropped_fields": res.dropped_fields,
+                        "alerts_created": len(created), "notifications_processed": delivered}), (201 if res.stored else 200)
 
     @app.post("/api/nodes")
     def post_node():
@@ -191,8 +262,10 @@ def create_app(settings: Optional[Settings] = None, forecast_fn=None, clock=time
         conn().commit()
         for r in scenarios.backfill(scenario, node_id, now(), seed=zlib.crc32(node_id.encode())):
             ingest.store_reading(conn(), node_id, r, now())
-        service.run_alert_check(conn(), now())
-        return jsonify({"status": "scenario_applied", "node_id": node_id, "scenario": scenario})
+        created = service.run_alert_check(conn(), now())
+        delivered = notifications.dispatch_alerts(conn(), created, settings, now())
+        return jsonify({"status": "scenario_applied", "node_id": node_id, "scenario": scenario,
+                        "alerts_created": len(created), "notifications_processed": delivered})
 
     @app.post("/api/seed")
     def seed():
@@ -202,7 +275,9 @@ def create_app(settings: Optional[Settings] = None, forecast_fn=None, clock=time
         b = request.get_json(silent=True) or {}
         scen = b.get("scenario")
         count = seed_demo(conn(), now(), scenario_override=scen)
-        service.run_alert_check(conn(), now())
-        return jsonify({"status": "seeded", "count": count})
+        created = service.run_alert_check(conn(), now())
+        delivered = notifications.dispatch_alerts(conn(), created, settings, now())
+        return jsonify({"status": "seeded", "count": count, "alerts_created": len(created),
+                        "notifications_processed": delivered})
 
     return app

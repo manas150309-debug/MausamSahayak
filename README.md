@@ -19,6 +19,7 @@ The safety principle is simple: **missing data is never treated as safe data**. 
 - **Upstream-to-downstream warning:** a rapid rise at an upstream node can escalate risk for a connected downstream node before the downstream level changes.
 - **Explainable risk:** every alert includes structured reason codes and the measurements that triggered it.
 - **Last-mile delivery:** Hindi and English Telegram guidance, subscriptions, and optional SMS fallback for RED alerts.
+- **Personal alert accounts:** Secure password-hashed signup/login, city preferences, email/SMS channels, and auditable delivery history.
 - **Graceful degradation:** monitoring continues when the external forecast service is unavailable.
 - **Field-ready workflow:** ESP32 firmware, an HTTP/MQTT simulator, calibration instructions, deployment checklists, and a no-hardware demo.
 
@@ -96,6 +97,11 @@ All thresholds in this repository are starting values. A real deployment must ca
 | `GET /api/alerts?since_id=` | Alert stream used by the bot |
 | `GET /api/evidence` | NASA POWER summaries for Faridabad, Delhi, and Greater Noida |
 | `POST /api/nodes/<id>/explain` | Bounded explanation of an already-computed station assessment |
+| `POST /api/auth/signup` | Create an alert account and queue welcome email/SMS |
+| `POST /api/auth/login` | Start a secure signed session |
+| `GET /api/auth/me` | Current authenticated alert profile |
+| `PUT /api/auth/preferences` | Change city, language, email, and SMS preferences |
+| `GET /api/notifications` | Authenticated delivery audit history |
 | `POST /api/readings` | Authenticated HTTP telemetry ingest |
 | `POST /api/nodes` | Authenticated station registration |
 
@@ -112,7 +118,7 @@ All thresholds in this repository are starting values. A real deployment must ca
 
 ## Verification status
 
-The automated suite currently contains **116 passing tests** covering risk rules, crop advice, forecast parsing, historical dataset ingestion, AI fallback safety, telemetry validation, backend endpoints, alerts, simulator scenarios, bot logic, and documentation tools.
+The automated suite currently contains **119 passing tests** covering risk rules, crop advice, forecast parsing, account authentication, email/SMS delivery routing, historical dataset ingestion, AI fallback safety, telemetry validation, backend endpoints, alerts, simulator scenarios, bot logic, and documentation tools.
 
 | Component | Current evidence |
 |---|---|
@@ -133,6 +139,14 @@ cp .env.example .env
 ```
 
 Important settings include `MAUSAM_API_KEY`, database paths, MQTT credentials, `TELEGRAM_TOKEN`, and the optional SMS provider. See the component READMEs for firmware and deployment instructions.
+
+### Login, email and SMS alerts
+
+The dashboard now requires an account. Passwords are stored using Werkzeug's salted password hashing; the browser receives only a signed, HTTP-only session cookie. Signup activates a city-specific subscription for Faridabad, Delhi, Greater Noida, or all NCR stations. Important non-GREEN changes are delivered through enabled channels and each attempt is recorded in the user's delivery history.
+
+For real email delivery, configure `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, and `SMTP_FROM`. For real SMS delivery, configure `TWILIO_SID`, `TWILIO_TOKEN`, and `TWILIO_FROM`, then set `SMS_PROVIDER=twilio`. With missing credentials the application deliberately uses `dry_run`, allowing a safe end-to-end demonstration without sending messages.
+
+The current free Render demo stores accounts in its existing ephemeral SQLite database. Accounts can reset after a redeploy or instance replacement. A production deployment should move user and delivery tables to managed PostgreSQL or attach persistent storage.
 
 ### AccuWeather forecast data
 
