@@ -93,6 +93,7 @@ All thresholds in this repository are starting values. A real deployment must ca
 | `GET /api/nodes/<id>/history?hours=24` | Recent station history |
 | `GET /api/nodes/<id>/risk` | Flood and heat assessment with reasons |
 | `GET /api/nearest?lat=&lon=` | Nearest station and coverage check |
+| `GET /api/locations/search?q=` | Search an Indian place name or postal code for map selection |
 | `GET /api/crop-advice?lat=&lon=&irrigated=0/1` | Rule-based crop suggestions |
 | `GET /api/alerts?since_id=` | Alert stream used by the bot |
 | `GET /api/evidence` | NASA POWER summaries for Faridabad, Delhi, and Greater Noida |
@@ -118,7 +119,7 @@ All thresholds in this repository are starting values. A real deployment must ca
 
 ## Verification status
 
-The automated suite currently contains **119 passing tests** covering risk rules, crop advice, forecast parsing, account authentication, email/SMS delivery routing, historical dataset ingestion, AI fallback safety, telemetry validation, backend endpoints, alerts, simulator scenarios, bot logic, and documentation tools.
+The automated suite currently contains **123 passing tests** covering risk rules, crop advice, place-name geocoding, account authentication, email/SMS delivery routing, historical dataset ingestion, Gemini integration and AI fallback safety, telemetry validation, backend endpoints, alerts, simulator scenarios, bot logic, and documentation tools.
 
 | Component | Current evidence |
 |---|---|
@@ -156,14 +157,14 @@ Set `ACCUWEATHER_API_KEY` to enrich flood-risk assessments with AccuWeather's co
 
 The three traceable snapshots in `parul_risk_crop/data/` contain 365 daily observations for Faridabad, Delhi, and Greater Noida downloaded from the official NASA POWER daily point API. The `historical_weather` module preserves a reproducible download pipeline and the dashboard's Evidence Lab calculates its summary statistics from the CSV files rather than hard-coded claims. Because these nearby NCR coordinates resolve to the same native NASA POWER grid cell, their values match; the UI states this limitation instead of implying street-level historical precision.
 
-Set `OPENAI_API_KEY` to enable the optional bilingual risk explainer. It uses the Responses API with `gpt-6-luna`; it receives only the already-computed station assessment and is explicitly prohibited from changing risk levels or issuing evacuation orders. Without a key or during an API failure, the endpoint returns a deterministic verified explanation.
+Set `GEMINI_API_KEY` (preferred) or `OPENAI_API_KEY` to enable the optional bilingual risk explainer. Gemini uses the server-side Generate Content API with `gemini-3.8-flash`; OpenAI uses the Responses API with `gpt-6-luna`. The model receives only the already-computed station assessment and is explicitly prohibited from changing risk levels or issuing evacuation orders. Without a key or during an API failure, the endpoint returns a deterministic verified explanation.
 
 ## Live presentation deployment
 
 The repository includes a Render Blueprint for a reproducible live demo. It runs the real Flask API and dashboard, seeds three presentation stations on an empty ephemeral database, and exposes the scenario simulator while keeping field telemetry writes behind a generated API key.
 
 1. Open [the Render Blueprint setup](https://dashboard.render.com/blueprint/new?repo=https://github.com/manas150309-debug/MausamSahayak).
-2. Enter `ACCUWEATHER_API_KEY` and optionally `OPENAI_API_KEY`, review the `mausam-sahayak` web service, and choose **Apply**.
+2. Enter `ACCUWEATHER_API_KEY` and optionally `GEMINI_API_KEY` or `OPENAI_API_KEY`, review the `mausam-sahayak` web service, and choose **Apply**.
 3. After the health check passes, open `/dashboard` on the generated Render URL.
 
 `MAUSAM_DEMO_MODE=true` is intended only for the public capstone demonstration. Set it to `false` for real deployments so `/api/simulate` and `/api/seed` return `403`.

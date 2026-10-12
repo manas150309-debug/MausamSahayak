@@ -19,6 +19,8 @@ class Settings:
     accuweather_api_key: str = ""
     openai_api_key: str = ""
     openai_model: str = "gpt-6-luna"
+    gemini_api_key: str = ""
+    gemini_model: str = "gemini-3.8-flash"
     session_secret: str = ""
     smtp_host: str = ""
     smtp_port: int = 587
@@ -44,6 +46,7 @@ class Settings:
             demo_mode=e("MAUSAM_DEMO_MODE", "false").strip().lower() in ("1", "true", "yes", "on"),
             accuweather_api_key=e("ACCUWEATHER_API_KEY", ""),
             openai_api_key=e("OPENAI_API_KEY", ""), openai_model=e("OPENAI_MODEL", "gpt-6-luna"),
+            gemini_api_key=e("GEMINI_API_KEY", ""), gemini_model=e("GEMINI_MODEL", "gemini-3.8-flash"),
             session_secret=e("SESSION_SECRET", ""),
             smtp_host=e("SMTP_HOST", ""), smtp_port=int(e("SMTP_PORT", "587")),
             smtp_user=e("SMTP_USER", ""), smtp_password=e("SMTP_PASSWORD", ""),

@@ -15,7 +15,7 @@ from .config import Settings
 STATIC = os.path.join(os.path.dirname(__file__), "static")
 
 
-def create_app(settings: Optional[Settings] = None, forecast_fn=None, clock=time.time) -> Flask:
+def create_app(settings: Optional[Settings] = None, forecast_fn=None, geocode_fn=None, clock=time.time) -> Flask:
     settings = settings or Settings.from_env()
     app = Flask(__name__)
     app.config["SETTINGS"] = settings
@@ -163,6 +163,22 @@ def create_app(settings: Optional[Settings] = None, forecast_fn=None, clock=time
         n = service.nearest_node(conn(), lat, lon, settings.max_node_distance_km)
         return err("no_nodes", 404) if n is None else jsonify(n)
 
+    @app.get("/api/locations/search")
+    def location_search():
+        query = " ".join(request.args.get("q", "").split())
+        if len(query) < 2 or len(query) > 100:
+            return err("location_query_must_be_2_to_100_characters", 400)
+        try:
+            if geocode_fn is not None:
+                locations = geocode_fn(query)
+            else:
+                from .geocoding import search_locations
+                locations = search_locations(query)
+        except Exception:
+            app.logger.exception("location search failed")
+            return err("location_search_unavailable", 502)
+        return jsonify({"query": query, "locations": locations})
+
     @app.get("/api/crop-advice")
     def crops():
         lat, lon = num_arg("lat"), num_arg("lon")
@@ -216,7 +232,8 @@ def create_app(settings: Optional[Settings] = None, forecast_fn=None, clock=time
         body = request.get_json(silent=True) or {}
         language = "hi" if body.get("language") == "hi" else "en"
         result = explain_assessment(assessment, str(body.get("question", "Explain this station risk.")), language,
-                                    settings.openai_api_key, settings.openai_model)
+                                    settings.openai_api_key, settings.openai_model,
+                                    settings.gemini_api_key, settings.gemini_model)
         return jsonify(result)
 
     # ---- protected write endpoints

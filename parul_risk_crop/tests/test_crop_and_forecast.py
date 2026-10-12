@@ -4,6 +4,7 @@ import tempfile
 import unittest
 
 from parul_risk_crop import crop_advisor, forecast, historical_weather, make_sample_crop_data, make_sample_history
+from manas_backend import geocoding
 from parul_risk_crop import train_crop_model, validate_thresholds
 
 
@@ -57,6 +58,20 @@ class FakeSession:
         if self.fail:
             raise RuntimeError("network down")
         return FakeResp(self.data)
+
+
+class GeocodingTests(unittest.TestCase):
+    def test_parses_place_labels_and_coordinates(self):
+        payload = {"results": [{"id": 1, "name": "Faridabad", "latitude": 28.4089, "longitude": 77.3178,
+                                "admin1": "Haryana", "country": "India", "timezone": "Asia/Kolkata"}]}
+        result = geocoding.parse_locations(payload)
+        self.assertEqual(result[0]["label"], "Faridabad, Haryana, India")
+        self.assertEqual(result[0]["longitude"], 77.3178)
+
+    def test_search_requests_india_results(self):
+        fake = FakeSession({"results": []})
+        self.assertEqual(geocoding.search_locations("Delhi", fake), [])
+        self.assertEqual(fake.calls, 1)
 
 
 def payload(now, hours=96, per_hour=1.0):

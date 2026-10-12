@@ -3,8 +3,9 @@ import os
 import tempfile
 import time
 import unittest
+from unittest.mock import Mock, patch
 
-from manas_backend import cli, db, ingest, service
+from manas_backend import ai_explainer, cli, db, ingest, service
 from manas_backend.api import create_app
 from manas_backend.config import Settings
 from nishant_firmware.simulator import scenarios
@@ -185,7 +186,11 @@ class NearestAndCropTests(Base):
 class ApiTests(Base):
     def setUp(self):
         super().setUp()
-        self.app = create_app(self.settings, forecast_fn=lambda la, lo: None, clock=lambda: NOW)
+        self.app = create_app(
+            self.settings, forecast_fn=lambda la, lo: None,
+            geocode_fn=lambda q: [{"id": 1, "name": q, "label": f"{q}, Haryana, India",
+                                   "latitude": 28.4089, "longitude": 77.3178}], clock=lambda: NOW,
+        )
         self.c = self.app.test_client()
 
     def test_health_and_dashboard(self):
@@ -268,6 +273,13 @@ class ApiTests(Base):
         self.assertEqual(self.c.get("/api/crop-advice?lat=28.41&lon=77.32&irrigated=1").status_code, 200)
         self.assertEqual(self.c.get("/api/crop-advice?lat=19&lon=72").status_code, 404)
 
+    def test_location_name_search(self):
+        result = self.c.get("/api/locations/search?q=Faridabad")
+        self.assertEqual(result.status_code, 200)
+        self.assertEqual(result.json["locations"][0]["name"], "Faridabad")
+        self.assertEqual(result.json["locations"][0]["latitude"], 28.4089)
+        self.assertEqual(self.c.get("/api/locations/search?q=x").status_code, 400)
+
     def test_register_node(self):
         r = self.c.post("/api/nodes", json={"node_id": "n9", "lat": 28.0, "lon": 77.0, "danger_level_cm": 300},
                         headers={"X-API-Key": "k"})
@@ -306,6 +318,22 @@ class ApiTests(Base):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json["mode"], "verified_fallback")
         self.assertIn("RED", response.json["text"])
+
+    def test_ai_explainer_prefers_configured_gemini(self):
+        upstream = Mock()
+        upstream.raise_for_status.return_value = None
+        upstream.json.return_value = {
+            "candidates": [{"content": {"parts": [{"text": "Verified Gemini explanation"}]}}]
+        }
+        with patch.object(ai_explainer.requests, "post", return_value=upstream) as post:
+            result = ai_explainer.explain_assessment(
+                {"flood": {"level_name": "YELLOW", "reasons": []}},
+                "Risk samjhao", "hi", "", "gpt-6-luna", "secret", "gemini-test",
+            )
+        self.assertEqual(result["mode"], "gemini")
+        self.assertEqual(result["text"], "Verified Gemini explanation")
+        self.assertNotIn("secret", json.dumps(post.call_args.kwargs["json"]))
+        self.assertEqual(post.call_args.kwargs["headers"]["x-goog-api-key"], "secret")
 
 
 class UpstreamTests(Base):

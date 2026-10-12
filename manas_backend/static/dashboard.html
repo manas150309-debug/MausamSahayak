@@ -640,6 +640,13 @@
   .delivery-status.sent { color: var(--green); }
   .delivery-status.dry_run { color: #b57400; }
   .delivery-status.failed { color: var(--red); }
+  .location-picker { display: grid; gap: 10px; }
+  .location-search-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+  .location-results { display: grid; gap: 6px; }
+  .location-option { width: 100%; text-align: left; padding: 9px 11px; border: 1px solid var(--border); border-radius: 10px; background: #f8fcfd; color: var(--fg); cursor: pointer; font: 600 .76rem inherit; }
+  .location-option:hover { border-color: var(--accent); background: #eff9ff; }
+  .map-preview { width: 100%; height: 210px; border: 1px solid var(--border); border-radius: 14px; background: #eef7fa; }
+  .selected-location { color: #0d607e; font-size: .76rem; font-weight: 800; }
   .rec-header {
     display: flex;
     justify-content: space-between;
@@ -881,7 +888,7 @@
     <h2 id="hero-title">From local sensor data to <span>timely, explainable action.</span></h2>
     <p>MausamSahayak connects low-cost ESP32 field nodes, fail-safe flood intelligence, bilingual last-mile alerts and climate-aware crop guidance in one operational platform.</p>
     <div class="proof-row">
-      <span class="proof-pill">✓ 119 automated tests</span>
+      <span class="proof-pill">✓ 123 automated tests</span>
       <span class="proof-pill">✓ Hindi + English alerts</span>
       <span class="proof-pill">✓ Offline sensor buffering</span>
       <span class="proof-pill">✓ Explainable risk reasons</span>
@@ -1033,15 +1040,12 @@
     </div>
     <div class="modal-body">
       <p style="color:var(--fg-muted);">Evaluate season, local 7-day temperature, IMD district normal rainfall, and soil moisture to recommend optimal crops.</p>
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-        <div class="form-group">
-          <label>Latitude</label>
-          <input type="number" step="0.0001" class="form-control" id="crop-lat" value="28.4089">
-        </div>
-        <div class="form-group">
-          <label>Longitude</label>
-          <input type="number" step="0.0001" class="form-control" id="crop-lon" value="77.3178">
-        </div>
+      <div class="location-picker">
+        <div class="form-group"><label>Search your village, city or postal code</label><div class="location-search-row"><input class="form-control" id="crop-location-search" value="Faridabad" placeholder="e.g. Ballabgarh, Delhi, Greater Noida" onkeydown="if(event.key==='Enter'){event.preventDefault();searchLocation('crop')}"><button class="btn btn-primary" onclick="searchLocation('crop')">🔎 Search</button></div></div>
+        <input type="hidden" id="crop-lat" value="28.4089"><input type="hidden" id="crop-lon" value="77.3178">
+        <div class="location-results" id="crop-location-results"></div>
+        <div class="selected-location" id="crop-selected-location">📍 Faridabad, Haryana, India</div>
+        <iframe class="map-preview" id="crop-map" title="Selected crop advisory location map" loading="lazy" referrerpolicy="no-referrer-when-downgrade" data-src="https://www.openstreetmap.org/export/embed.html?bbox=77.2878%2C28.3889%2C77.3478%2C28.4289&amp;layer=mapnik&amp;marker=28.4089%2C77.3178"></iframe>
       </div>
       <div class="form-group">
         <label>Irrigation Access</label>
@@ -1096,15 +1100,12 @@
     </div>
     <div class="modal-body">
       <p style="color:var(--fg-muted);">Look up the nearest sensor node within 30 km range (as used by the Telegram bot).</p>
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-        <div class="form-group">
-          <label>Latitude</label>
-          <input type="number" step="0.0001" class="form-control" id="near-lat" value="28.4100">
-        </div>
-        <div class="form-group">
-          <label>Longitude</label>
-          <input type="number" step="0.0001" class="form-control" id="near-lon" value="77.3200">
-        </div>
+      <div class="location-picker">
+        <div class="form-group"><label>Search your location by name</label><div class="location-search-row"><input class="form-control" id="near-location-search" value="Faridabad" placeholder="e.g. Sector 15 Faridabad" onkeydown="if(event.key==='Enter'){event.preventDefault();searchLocation('near')}"><button class="btn btn-primary" onclick="searchLocation('near')">🔎 Search</button></div></div>
+        <input type="hidden" id="near-lat" value="28.4100"><input type="hidden" id="near-lon" value="77.3200">
+        <div class="location-results" id="near-location-results"></div>
+        <div class="selected-location" id="near-selected-location">📍 Faridabad, Haryana, India</div>
+        <iframe class="map-preview" id="near-map" title="Selected nearest-station location map" loading="lazy" referrerpolicy="no-referrer-when-downgrade" data-src="https://www.openstreetmap.org/export/embed.html?bbox=77.2900%2C28.3900%2C77.3500%2C28.4300&amp;layer=mapnik&amp;marker=28.4100%2C77.3200"></iframe>
       </div>
       <div style="display:flex; gap:10px;">
         <button class="btn btn-primary" style="flex:1;" onclick="queryNearest()">Find Nearest Station</button>
@@ -1195,6 +1196,7 @@ let cachedNodes = [];
 let cachedRisks = {};
 let cachedHistories = {};
 let currentUser = null;
+const locationResults = {crop: [], near: []};
 
 const $ = (s) => document.querySelector(s);
 const fmt = (v, u = "") => (v === null || v === undefined ? "-" : v + u);
@@ -1216,7 +1218,11 @@ function showToast(msg, icon = 'ℹ️') {
   setTimeout(() => t.classList.remove('show'), 3500);
 }
 
-function openModal(id) { $('#' + id).classList.add('open'); }
+function openModal(id) {
+  const modal = $('#' + id);
+  modal.classList.add('open');
+  modal.querySelectorAll('iframe[data-src]').forEach(frame => { if (!frame.getAttribute('src')) frame.src = frame.dataset.src; });
+}
 function closeModal(id) { $('#' + id).classList.remove('open'); }
 
 async function loadAccount() {
@@ -1261,6 +1267,38 @@ async function logout() {
   location.assign('/login');
 }
 
+function mapEmbedUrl(lat, lon) {
+  const left = (lon - .03).toFixed(5), right = (lon + .03).toFixed(5);
+  const bottom = (lat - .02).toFixed(5), top = (lat + .02).toFixed(5);
+  return `https://www.openstreetmap.org/export/embed.html?bbox=${left}%2C${bottom}%2C${right}%2C${top}&layer=mapnik&marker=${lat}%2C${lon}`;
+}
+
+async function searchLocation(prefix) {
+  const input = $(`#${prefix}-location-search`);
+  const results = $(`#${prefix}-location-results`);
+  const query = input.value.trim();
+  if (query.length < 2) { results.textContent = 'Enter at least 2 characters.'; return; }
+  results.innerHTML = '<span style="color:var(--fg-muted);">Searching locations…</span>';
+  try {
+    const data = await api(`/api/locations/search?q=${encodeURIComponent(query)}`);
+    locationResults[prefix] = data.locations;
+    results.innerHTML = data.locations.length ? data.locations.map((place, index) =>
+      `<button class="location-option" onclick="selectLocation('${prefix}',${index})">📍 ${escapeHtml(place.label)}<br><small>${place.latitude.toFixed(4)}°, ${place.longitude.toFixed(4)}°</small></button>`
+    ).join('') : '<span style="color:var(--fg-muted);">No matching Indian location found. Try a nearby city or postal code.</span>';
+  } catch (err) { results.textContent = 'Location search unavailable: ' + err.message; }
+}
+
+function selectLocation(prefix, index) {
+  const place = locationResults[prefix][index];
+  if (!place) return;
+  $(`#${prefix}-lat`).value = place.latitude;
+  $(`#${prefix}-lon`).value = place.longitude;
+  $(`#${prefix}-selected-location`).textContent = `📍 ${place.label}`;
+  $(`#${prefix}-map`).src = mapEmbedUrl(place.latitude, place.longitude);
+  $(`#${prefix}-location-results`).innerHTML = '';
+  showToast(`Location selected: ${place.name}`, '📍');
+}
+
 async function openEvidenceLab() {
   openModal('modal-evidence');
   try {
@@ -1293,7 +1331,8 @@ async function askAI() {
       method: 'POST', headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({language: $('#ai-language').value, question: $('#ai-question').value})
     });
-    out.textContent = result.text + (result.mode === 'openai' ? `\n\nPowered by ${result.model}` : '\n\nVerified offline explanation · add OPENAI_API_KEY for generative mode');
+    const generated = ['openai', 'gemini'].includes(result.mode);
+    out.textContent = result.text + (generated ? `\n\nPowered by ${result.model}` : '\n\nVerified offline explanation · add GEMINI_API_KEY or OPENAI_API_KEY for generative mode');
   } catch (err) {
     out.textContent = 'Explanation unavailable: ' + err.message;
   }
@@ -1755,6 +1794,8 @@ function useMyLocation() {
     navigator.geolocation.getCurrentPosition(pos => {
       $('#near-lat').value = pos.coords.latitude.toFixed(4);
       $('#near-lon').value = pos.coords.longitude.toFixed(4);
+      $('#near-selected-location').textContent = '📍 Your current device location';
+      $('#near-map').src = mapEmbedUrl(pos.coords.latitude, pos.coords.longitude);
       queryNearest();
     }, () => showToast('Geolocation access denied', '⚠️'));
   } else {
@@ -1795,7 +1836,10 @@ if (alertsBtn) {
 // --- Init & Interval ---
 loadAccount();
 refreshData();
-setInterval(refreshData, 30000);
+setInterval(() => {
+  // Keep forms and map selection steady while the user is working inside a modal.
+  if (!document.hidden && !document.querySelector('.modal-overlay.open')) refreshData();
+}, 30000);
 window.addEventListener('resize', renderCards);
 </script>
 </body>
