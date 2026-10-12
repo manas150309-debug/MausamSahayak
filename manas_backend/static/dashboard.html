@@ -6,6 +6,12 @@
 <meta name="theme-color" content="#eef9ff">
 <meta name="description" content="MausamSahayak is an IoT-powered hyperlocal flood early-warning and crop advisory platform for safer, climate-resilient communities.">
 <title>MausamSahayak - IoT Weather, Flood Alert & Crop Advisory System</title>
+<script>
+  // A raw file cannot reach Flask's APIs; always send accidental file opens to the live app.
+  if (window.location.protocol === 'file:') {
+    window.location.replace('https://mausam-sahayak.onrender.com/dashboard');
+  }
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -978,7 +984,7 @@
   </div>
   <div style="font-size:0.75rem; color:var(--fg-dim);">
     Quick Actions: <button class="btn" style="padding:4px 10px; font-size:0.7rem;" onclick="seedDemo()">Re-Seed Demo Data</button>
-    <button class="btn" style="padding:4px 10px; font-size:0.7rem;" onclick="refreshData()">Force Sync Now</button>
+    <button class="btn" style="padding:4px 10px; font-size:0.7rem;" onclick="refreshData({forceHistory:true})">Force Sync Now</button>
   </div>
 </div>
 
@@ -1197,6 +1203,11 @@ let cachedRisks = {};
 let cachedHistories = {};
 let currentUser = null;
 const locationResults = {crop: [], near: []};
+let refreshInFlight = false;
+let lastHistorySync = 0;
+let resizeFrame = null;
+let lastCardsSignature = '';
+const HISTORY_REFRESH_MS = 5 * 60 * 1000;
 
 const $ = (s) => document.querySelector(s);
 const fmt = (v, u = "") => (v === null || v === undefined ? "-" : v + u);
@@ -1349,7 +1360,7 @@ function setFilter(f) {
   document.querySelectorAll('.filter-btn').forEach(btn => {
     btn.classList.toggle('active', btn.textContent.toUpperCase().includes(f));
   });
-  renderCards();
+  renderCards(true);
 }
 
 // --- High-DPI Canvas Sparkline ---
@@ -1446,20 +1457,29 @@ function drawSparkline(canvas, values, options = {}) {
 }
 
 // --- Main Render Pipeline ---
-async function refreshData() {
+async function refreshData({forceHistory = false} = {}) {
+  if (refreshInFlight) return;
+  refreshInFlight = true;
   try {
     $('#net-status').innerHTML = '<div class="pulse-dot"></div><span>SYNCING...</span>';
     const { nodes } = await api('/api/nodes');
     cachedNodes = nodes;
 
     const riskPromises = nodes.map(n => api(`/api/nodes/${n.node_id}/risk`).catch(() => null));
-    const histPromises = nodes.map(n => api(`/api/nodes/${n.node_id}/history?hours=24`).catch(() => null));
+    const shouldRefreshHistory = forceHistory || !lastHistorySync ||
+      Date.now() - lastHistorySync >= HISTORY_REFRESH_MS ||
+      nodes.some(n => !cachedHistories[n.node_id]);
+    const histPromises = shouldRefreshHistory
+      ? nodes.map(n => api(`/api/nodes/${n.node_id}/history?hours=24`).catch(() => null))
+      : [];
 
-    const [risks, hists] = await Promise.all([Promise.all(riskPromises), Promise.all(histPromises)]);
+    const risks = await Promise.all(riskPromises);
+    const hists = shouldRefreshHistory ? await Promise.all(histPromises) : [];
     nodes.forEach((n, idx) => {
       cachedRisks[n.node_id] = risks[idx];
-      cachedHistories[n.node_id] = hists[idx];
+      if (shouldRefreshHistory && hists[idx]) cachedHistories[n.node_id] = hists[idx];
     });
+    if (shouldRefreshHistory) lastHistorySync = Date.now();
 
     updateSummaryKPIs();
     renderCards();
@@ -1468,6 +1488,8 @@ async function refreshData() {
   } catch (err) {
     $('#net-status').innerHTML = '<span style="color:#ef4444;">● OFFLINE / ERROR</span>';
     showToast('Failed to sync: ' + err.message, '⚠️');
+  } finally {
+    refreshInFlight = false;
   }
 }
 
@@ -1517,10 +1539,7 @@ function updateSummaryKPIs() {
   $('#kpi-rain').textContent = maxRain.toFixed(1) + ' mm';
 }
 
-function renderCards() {
-  const root = $('#stations-grid');
-  root.innerHTML = '';
-
+function renderCards(force = false) {
   const filtered = cachedNodes.filter(n => {
     const r = cachedRisks[n.node_id];
     const floodLvl = r?.flood?.level_name || 'UNKNOWN';
@@ -1528,6 +1547,18 @@ function renderCards() {
     if (currentFilter === 'NORMAL') return floodLvl === 'GREEN';
     return true;
   });
+
+  const signature = JSON.stringify([currentFilter, filtered.map(n => {
+    const risk = cachedRisks[n.node_id] || {};
+    const history = cachedHistories[n.node_id]?.readings || [];
+    return [n.node_id, risk.reading, risk.flood?.level_name, risk.flood?.stale,
+      risk.flood?.reasons, risk.heat?.level_name, history.length, history.at(-1)];
+  })]);
+  if (!force && signature === lastCardsSignature) return;
+  lastCardsSignature = signature;
+
+  const root = $('#stations-grid');
+  root.innerHTML = '';
 
   if (filtered.length === 0) {
     root.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:40px; color:var(--fg-dim);">No stations matching filter</div>';
@@ -1671,7 +1702,7 @@ async function quickSim(nodeId, scenario) {
       body: JSON.stringify({ node_id: nodeId, scenario: scenario })
     });
     showToast(`Applied ${scenario} to ${nodeId}!`, '✅');
-    await refreshData();
+    await refreshData({forceHistory:true});
   } catch (err) {
     showToast('Simulation failed: ' + err.message, '❌');
   }
@@ -1690,7 +1721,7 @@ async function seedDemo() {
     await api('/api/seed', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
     showToast('Demo nodes seeded successfully!', '✅');
     closeModal('modal-simulator');
-    await refreshData();
+    await refreshData({forceHistory:true});
   } catch (err) {
     showToast('Seed failed: ' + err.message, '❌');
   }
@@ -1839,8 +1870,11 @@ refreshData();
 setInterval(() => {
   // Keep forms and map selection steady while the user is working inside a modal.
   if (!document.hidden && !document.querySelector('.modal-overlay.open')) refreshData();
-}, 30000);
-window.addEventListener('resize', renderCards);
+}, 5 * 60 * 1000);
+window.addEventListener('resize', () => {
+  if (resizeFrame) cancelAnimationFrame(resizeFrame);
+  resizeFrame = requestAnimationFrame(() => renderCards(true));
+});
 </script>
 </body>
 </html>
