@@ -17,7 +17,7 @@ STATIC = os.path.join(os.path.dirname(__file__), "static")
 
 def create_app(settings: Optional[Settings] = None, forecast_fn=None, geocode_fn=None, clock=time.time) -> Flask:
     settings = settings or Settings.from_env()
-    app = Flask(__name__)
+    app = Flask(__name__, static_folder=None)
     app.config["SETTINGS"] = settings
     app.secret_key = settings.session_secret or settings.api_key or "mausam-dev-session-secret"
     app.config.update(
@@ -71,13 +71,17 @@ def create_app(settings: Optional[Settings] = None, forecast_fn=None, geocode_fn
     def login_page():
         if session.get("user_id"):
             return redirect("/dashboard")
-        return send_from_directory(STATIC, "login.html")
+        response = send_from_directory(STATIC, "login.html")
+        response.headers["Cache-Control"] = "no-store, max-age=0"
+        return response
 
     @app.get("/dashboard")
     def dashboard():
         if not session.get("user_id"):
             return redirect("/login")
-        return send_from_directory(STATIC, "dashboard.html")
+        response = send_from_directory(STATIC, "dashboard.html")
+        response.headers["Cache-Control"] = "no-store, max-age=0"
+        return response
 
     # ---- user accounts and notification preferences
     @app.post("/api/auth/signup")
