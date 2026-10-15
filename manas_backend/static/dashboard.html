@@ -1186,7 +1186,6 @@ let currentUser = null;
 const locationResults = {crop: [], near: []};
 let refreshInFlight = false;
 let lastHistorySync = 0;
-let resizeFrame = null;
 let lastCardsSignature = '';
 const HISTORY_REFRESH_MS = 5 * 60 * 1000;
 
@@ -1852,10 +1851,6 @@ if (alertsBtn) {
 // --- Init & Interval ---
 loadAccount();
 refreshData();
-window.addEventListener('resize', () => {
-  if (resizeFrame) cancelAnimationFrame(resizeFrame);
-  resizeFrame = requestAnimationFrame(() => renderCards(true));
-});
 </script>
 </body>
 </html>
