@@ -1188,6 +1188,11 @@ let refreshInFlight = false;
 let lastHistorySync = 0;
 let lastCardsSignature = '';
 const HISTORY_REFRESH_MS = 5 * 60 * 1000;
+const initialDashboard = (() => {
+  const element = document.querySelector('#dashboard-bootstrap');
+  if (!element) return null;
+  try { return JSON.parse(element.textContent); } catch (_) { return null; }
+})();
 
 const $ = (s) => document.querySelector(s);
 const fmt = (v, u = "") => (v === null || v === undefined ? "-" : v + u);
@@ -1859,7 +1864,18 @@ if (alertsBtn) {
 
 // --- Init & Interval ---
 loadAccount();
-refreshData();
+if (initialDashboard) {
+  cachedNodes = initialDashboard.nodes || [];
+  cachedRisks = initialDashboard.risks || {};
+  cachedHistories = initialDashboard.histories || {};
+  lastHistorySync = Date.now();
+  updateSummaryKPIs();
+  renderCards(true);
+  $('#net-status').innerHTML = '<div class="pulse-dot"></div><span>LIVE DEMO NETWORK</span>';
+  $('#kpi-sync').textContent = new Date().toLocaleTimeString();
+} else {
+  refreshData();
+}
 </script>
 </body>
 </html>

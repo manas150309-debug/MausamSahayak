@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import hmac
+import json
 import os
 import time
 from pathlib import Path
@@ -80,7 +81,26 @@ def create_app(settings: Optional[Settings] = None, forecast_fn=None, geocode_fn
     def dashboard():
         if not session.get("user_id"):
             return redirect("/login")
-        response = send_from_directory(STATIC, "dashboard.html")
+        # Render a complete first snapshot into the page. This avoids a fan-out
+        # of browser requests during startup (and prevents an indefinitely
+        # empty dashboard when a mobile/in-app browser suspends background I/O).
+        nodes = service.list_nodes(conn())
+        snapshot = {"nodes": nodes, "risks": {}, "histories": {}}
+        for node in nodes:
+            node_id = node["node_id"]
+            snapshot["risks"][node_id] = service.assess_node(
+                conn(), node_id, now(), None, settings
+            )
+            snapshot["histories"][node_id] = {
+                "node_id": node_id,
+                "hours": 24,
+                "readings": service.history(conn(), node_id, 24, now()),
+            }
+        encoded = json.dumps(snapshot, ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c")
+        bootstrap = f'<script type="application/json" id="dashboard-bootstrap">{encoded}</script>\n'
+        page = (Path(STATIC) / "dashboard.html").read_text(encoding="utf-8")
+        page = page.replace("<script>\n// --- State & Helpers ---", bootstrap + "<script>\n// --- State & Helpers ---", 1)
+        response = app.response_class(page, mimetype="text/html")
         response.headers["Cache-Control"] = "no-store, max-age=0"
         return response
 

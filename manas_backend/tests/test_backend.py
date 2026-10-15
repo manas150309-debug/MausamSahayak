@@ -212,6 +212,8 @@ class ApiTests(Base):
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.headers["Cache-Control"], "no-store, max-age=0")
         self.assertIn(b"MausamSahayak", r.data)
+        self.assertIn(b'id="dashboard-bootstrap"', r.data)
+        self.assertIn(b'"node_id":"n1"', r.data)
         r.close()
 
     def test_signup_login_logout_and_delivery_history(self):
