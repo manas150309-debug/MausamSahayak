@@ -1193,12 +1193,21 @@ const $ = (s) => document.querySelector(s);
 const fmt = (v, u = "") => (v === null || v === undefined ? "-" : v + u);
 const escapeHtml = (value) => String(value).replace(/[&<>'"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch]));
 const api = async (url, opts = {}) => {
-  const r = await fetch(url, opts);
-  if (!r.ok) {
-    const err = await r.json().catch(() => ({}));
-    throw new Error(err.error || `HTTP ${r.status}`);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+  try {
+    const r = await fetch(url, {...opts, cache: 'no-store', signal: controller.signal});
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      throw new Error(err.error || `HTTP ${r.status}`);
+    }
+    return await r.json();
+  } catch (err) {
+    if (err.name === 'AbortError') throw new Error('request_timeout');
+    throw err;
+  } finally {
+    clearTimeout(timeout);
   }
-  return r.json();
 };
 
 function showToast(msg, icon = 'ℹ️') {
