@@ -71,16 +71,20 @@ def create_app(settings: Optional[Settings] = None, forecast_fn=None, geocode_fn
 
     @app.get("/login")
     def login_page():
-        if session.get("user_id"):
+        user = auth.get_user(conn(), session.get("user_id", 0)) if session.get("user_id") else None
+        if user:
             return redirect("/dashboard")
+        # Render's demo database is ephemeral. An old signed cookie can outlive
+        # its user row after a deploy, so clear it instead of redirecting in a
+        # /dashboard <-> /login loop.
+        if session.get("user_id"):
+            session.clear()
         response = send_from_directory(STATIC, "login.html")
         response.headers["Cache-Control"] = "no-store, max-age=0"
         return response
 
     @app.get("/dashboard")
     def dashboard():
-        if not session.get("user_id"):
-            return redirect("/login")
         # Render a complete first snapshot into the page. This avoids a fan-out
         # of browser requests during startup (and prevents an indefinitely
         # empty dashboard when a mobile/in-app browser suspends background I/O).

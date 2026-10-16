@@ -197,11 +197,20 @@ class ApiTests(Base):
 
     def test_health_and_dashboard(self):
         self.assertEqual(self.c.get("/health").json["status"], "ok")
-        self.assertEqual(self.c.get("/dashboard").status_code, 302)
+        public_dashboard = self.c.get("/dashboard")
+        self.assertEqual(public_dashboard.status_code, 200)
+        self.assertIn(b'id="dashboard-bootstrap"', public_dashboard.data)
+        public_dashboard.close()
         login = self.c.get("/login")
         self.assertEqual(login.status_code, 200)
         self.assertEqual(login.headers["Cache-Control"], "no-store, max-age=0")
         login.close()
+        with self.c.session_transaction() as browser_session:
+            browser_session["user_id"] = 999999
+        stale_login = self.c.get("/login")
+        self.assertEqual(stale_login.status_code, 200)
+        stale_login.close()
+        self.assertEqual(self.c.get("/api/auth/me").status_code, 401)
         self.assertEqual(self.c.get("/static/dashboard.html").status_code, 404)
         signup = self.c.post("/api/auth/signup", json={
             "name": "Test User", "email": "test@example.com", "phone": "+919876543210",

@@ -1242,14 +1242,24 @@ async function loadAccount() {
     $('#pref-language').value = currentUser.language;
     $('#pref-email').checked = Boolean(currentUser.email_alerts);
     $('#pref-sms').checked = Boolean(currentUser.sms_alerts);
+    return true;
   } catch (err) {
-    if (err.message === 'authentication_required') location.assign('/login');
+    if (err.message === 'authentication_required') {
+      currentUser = null;
+      $('#account-name').textContent = 'Sign in';
+      $('#account-avatar').textContent = '↪';
+      return false;
+    }
+    return false;
   }
 }
 
 async function openAccount() {
+  if (!await loadAccount()) {
+    location.assign('/login');
+    return;
+  }
   openModal('modal-account');
-  await loadAccount();
   try {
     const data = await api('/api/notifications');
     $('#delivery-list').innerHTML = data.deliveries.length ? data.deliveries.map(item => `
